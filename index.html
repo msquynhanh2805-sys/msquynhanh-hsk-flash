@@ -3,74 +3,59 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>HSK 1 Flashcards & Practice</title>
+  <title>HSK 1 Luyện Tập Phản Xạ</title>
   <link rel="stylesheet" href="style.css">
   
-  <!-- Thư viện SheetJS đọc file Excel -->
   <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
-  <!-- Thư viện Canvas Confetti tạo hiệu ứng pháo hoa -->
   <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.5.1/dist/confetti.browser.min.js"></script>
 </head>
 <body>
   <div class="app-container">
     <header>
-      <h1>🇨🇳 HSK 1 Flashcards</h1>
+      <h1>🇨🇳 HSK 1 App Luyện Tập</h1>
       <button id="theme-toggle" class="btn-theme" onclick="toggleDarkMode()">🌙 Dark Mode</button>
     </header>
 
-    <!-- SECTION 1: FLASHCARD LẬT 3D -->
-    <section class="flashcard-section">
-      <div class="card-counter">
-        Thẻ <span id="current-index">1</span> / <span id="total-cards">143</span>
-      </div>
-
-      <div class="flashcard-container" onclick="flipCard()">
-        <div class="flashcard" id="flashcard">
-          <!-- Mặt trước -->
-          <div class="card-face card-front">
-            <h2 id="card-hanzi">Đang tải...</h2>
-            <p id="card-pinyin">...</p>
-            <span class="hint">💡 Click để lật thẻ</span>
-          </div>
-          <!-- Mặt sau -->
-          <div class="card-face card-back">
-            <h3 id="card-meaning">...</h3>
-            <hr class="card-divider">
-            <p class="example-title">Ví dụ:</p>
-            <p id="card-example-cn" class="example-cn">...</p>
-            <p id="card-example-vn" class="example-vn">...</p>
-          </div>
+    <!-- DẠNG 1: TRẮC NGHIỆM CHỌN HÁN TỰ / PINYIN -->
+    <section class="quiz-section">
+      <div class="quiz-card">
+        <div class="badge-wrapper">
+          <span class="badge green">❇️ Bài Tập Ôn Tập HSK 1</span>
         </div>
-      </div>
+        <p class="quiz-prompt">Chọn Hán tự đúng với nghĩa tiếng Việt dưới đây:</p>
+        <h2 id="mc-meaning" class="quiz-meaning">"..."</h2>
 
-      <div class="controls">
-        <button class="btn-nav" onclick="prevCard()">⬅️ Từ trước</button>
-        <button class="btn-nav" onclick="nextCard()">Từ tiếp ➡️</button>
+        <div id="mc-options" class="options-list"></div>
+        <p id="mc-feedback" class="feedback-msg"></p>
       </div>
     </section>
 
     <hr class="section-divider">
 
-    <!-- SECTION 2: BÀI TẬP SẮP XẾP CÂU & PHÁO HOA -->
+    <!-- DẠNG 2: SẮP XẾP CÂU PINYIN + ĐẾM NGƯỢC PHẢN XẠ -->
     <section class="quiz-section">
-      <div class="quiz-box">
-        <div class="quiz-header">
-          <span class="badge">🧩 Bài Tập Sắp Xếp Câu HSK 1</span>
-          <p class="quiz-prompt">Hãy chọn các từ dưới đây để xếp thành câu đúng nghĩa với:</p>
-          <h3 id="sentence-meaning" class="quiz-meaning">Đang tải câu...</h3>
+      <div class="quiz-card">
+        <div class="badge-wrapper">
+          <span class="badge blue">⚡ Sắp Xếp Câu Phản Xạ (10s)</span>
         </div>
+
+        <!-- Thanh thời gian đếm ngược -->
+        <div class="timer-container">
+          <div id="timer-bar" class="timer-bar"></div>
+        </div>
+
+        <p class="quiz-prompt">Sắp xếp các từ Pinyin thành câu trước khi hết giờ:</p>
+        <h2 id="scramble-meaning" class="quiz-meaning">"..."</h2>
 
         <div class="sentence-builder-box" id="user-sentence">
-          <span class="placeholder-text">Click chọn các từ bên dưới để ghép câu...</span>
+          <span class="placeholder-text">Click chọn các từ pinyin bên dưới...</span>
         </div>
 
-        <div class="word-pool" id="word-pool">
-          <!-- Các thẻ từ sẽ tự render ở đây -->
-        </div>
+        <div class="word-pool" id="word-pool"></div>
 
         <div class="quiz-footer">
-          <button class="btn-reset" onclick="resetSentence()">🔄 Làm lại câu này</button>
-          <p id="quiz-feedback" class="feedback-msg"></p>
+          <button class="btn-reset" onclick="initSentenceScrambleQuiz()">⏭️ Câu tiếp theo</button>
+          <p id="scramble-feedback" class="feedback-msg"></p>
         </div>
       </div>
     </section>
