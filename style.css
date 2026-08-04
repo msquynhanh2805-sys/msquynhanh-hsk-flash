@@ -72,7 +72,21 @@ header h1 {
 .badge.green { background: #1f883d; color: #ffffff; }
 .badge.blue { background: #0969da; color: #ffffff; }
 
-/* THANH ĐẾM NGƯỢC ⏱️ */
+/* TIẾN ĐỘ & TIMER ⏱️ */
+.quiz-meta {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 13px;
+  font-weight: bold;
+  color: #57606a;
+  margin-bottom: 8px;
+}
+
+.timer-text {
+  color: #cf222e;
+}
+
 .timer-container {
   width: 100%;
   height: 6px;
@@ -91,13 +105,13 @@ header h1 {
 
 .quiz-prompt {
   color: #57606a;
-  font-size: 14px;
+  font-size: 13px;
   margin-bottom: 8px;
 }
 
 .quiz-meaning {
   color: #9a6700;
-  font-size: 24px;
+  font-size: 22px;
   font-weight: bold;
   margin-bottom: 20px;
 }
@@ -133,7 +147,7 @@ header h1 {
 
 /* DẠNG 2: SẮP XẾP CÂU PINYIN */
 .sentence-builder-box {
-  min-height: 60px;
+  min-height: 65px;
   background: #f8f9fa;
   border: 2px dashed #0969da;
   border-radius: 12px;
@@ -153,7 +167,8 @@ header h1 {
   flex-wrap: wrap;
   gap: 10px;
   justify-content: center;
-  margin-bottom: 16px;
+  margin-bottom: 20px;
+  min-height: 45px;
 }
 
 .word-chip {
@@ -172,17 +187,46 @@ header h1 {
 .word-chip:hover {
   background: #0969da;
   color: #ffffff;
+  transform: translateY(-2px);
 }
 
-.btn-reset {
-  background: transparent;
+.word-chip.selected-chip {
+  border-color: #0969da;
+  background: #ddf4ff;
+}
+
+/* NÚT ĐIỀU KHIỂN */
+.quiz-footer {
+  display: flex;
+  gap: 8px;
+  justify-content: center;
+  flex-wrap: wrap;
+}
+
+.btn-control {
+  background: #ffffff;
   border: 1px solid #d0d7de;
-  padding: 8px 16px;
-  border-radius: 6px;
+  padding: 8px 14px;
+  border-radius: 8px;
   cursor: pointer;
   font-size: 13px;
   font-weight: bold;
   color: #24292f;
+  transition: all 0.2s;
+}
+
+.btn-control:hover {
+  background: #f3f4f6;
+}
+
+.btn-control.primary {
+  background: #0969da;
+  color: #ffffff;
+  border-color: #0969da;
+}
+
+.btn-control.primary:hover {
+  background: #0858b9;
 }
 
 .feedback-msg {
@@ -194,7 +238,7 @@ header h1 {
 
 /* DARK MODE */
 body.dark-mode { background-color: #0d1117; color: #c9d1d9; }
-body.dark-mode .quiz-card, body.dark-mode .btn-theme { background-color: #161b22; border-color: #30363d; color: #c9d1d9; }
+body.dark-mode .quiz-card, body.dark-mode .btn-theme, body.dark-mode .btn-control { background-color: #161b22; border-color: #30363d; color: #c9d1d9; }
 body.dark-mode .quiz-meaning { color: #f2cc60; }
 body.dark-mode .option-btn { background: #21262d; border-color: #30363d; }
 body.dark-mode .option-btn:hover { background: #262c36; border-color: #58a6ff; }
@@ -203,4 +247,5 @@ body.dark-mode .option-pinyin { color: #8b949e; }
 body.dark-mode .sentence-builder-box { background: #0d1117; border-color: #58a6ff; }
 body.dark-mode .word-chip { background: #21262d; border-color: #30363d; color: #58a6ff; }
 body.dark-mode .word-chip:hover { background: #1f6beb; color: #ffffff; }
+body.dark-mode .word-chip.selected-chip { background: #183347; border-color: #58a6ff; }
 body.dark-mode .timer-container { background: #30363d; }
