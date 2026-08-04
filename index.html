@@ -16,12 +16,18 @@
       <button id="theme-toggle" class="btn-theme" onclick="toggleDarkMode()">🌙 Dark Mode</button>
     </header>
 
-    <!-- DẠNG 1: TRẮC NGHIỆM CHỌN HÁN TỰ / PINYIN -->
+    <!-- DẠNG 1: TRẮC NGHIỆM CHỌN HÁN TỰ / PINYIN (CÓ LƯU TIẾN ĐỘ) -->
     <section class="quiz-section">
       <div class="quiz-card">
         <div class="badge-wrapper">
           <span class="badge green">❇️ Bài Tập Ôn Tập HSK 1</span>
         </div>
+        
+        <div class="quiz-meta">
+          <span class="progress-text" id="mc-progress">Tiến độ: 0/0</span>
+          <button class="btn-control" onclick="skipMcQuestion()" style="padding: 2px 8px; font-size: 11px;">Bỏ qua ⏭️</button>
+        </div>
+
         <p class="quiz-prompt">Chọn Hán tự đúng với nghĩa tiếng Việt dưới đây:</p>
         <h2 id="mc-meaning" class="quiz-meaning">"..."</h2>
 
@@ -32,14 +38,13 @@
 
     <hr class="section-divider">
 
-    <!-- DẠNG 2: SẮP XẾP CÂU PINYIN (60s + Nút Pause + Lưu tiến độ) -->
+    <!-- DẠNG 2: SẮP XẾP CÂU PINYIN (60S CHUẨN + LƯU TIẾN ĐỘ) -->
     <section class="quiz-section">
       <div class="quiz-card">
         <div class="badge-wrapper">
           <span class="badge blue">⚡ Sắp Xếp Câu Pinyin</span>
         </div>
 
-        <!-- Tiến độ & Thời gian -->
         <div class="quiz-meta">
           <span class="progress-text" id="scramble-progress">Tiến độ: 0/0</span>
           <span class="timer-text" id="timer-text">⏱️ 60s</span>
@@ -52,12 +57,10 @@
         <p class="quiz-prompt">Sắp xếp các từ Pinyin thành câu đúng (Click từ đã chọn để hủy):</p>
         <h2 id="scramble-meaning" class="quiz-meaning">"..."</h2>
 
-        <!-- Ô xếp câu của người dùng -->
         <div class="sentence-builder-box" id="user-sentence">
           <span class="placeholder-text">Click chọn các từ pinyin bên dưới...</span>
         </div>
 
-        <!-- Ô chứa các từ Pinyin xáo trộn -->
         <div class="word-pool" id="word-pool"></div>
 
         <div class="quiz-footer">
