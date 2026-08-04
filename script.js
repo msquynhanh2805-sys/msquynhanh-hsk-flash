@@ -1,115 +1,166 @@
-let cards = [];
-let current = 0;
-let showingFront = true;
+*{
+    margin:0;
+    padding:0;
+    box-sizing:border-box;
+}
 
-const STORAGE_KEY = "flashcard-progress";
+body{
+    font-family:Arial,Helvetica,sans-serif;
+    background:linear-gradient(135deg,#dbeafe,#eff6ff);
+    min-height:100vh;
+    display:flex;
+    justify-content:center;
+    align-items:center;
+    padding:20px;
+}
 
-fetch("data/HSK1_flashcards.xlsx")
-    .then(res => res.arrayBuffer())
-    .then(buffer => {
+.container{
+    width:100%;
+    max-width:500px;
+    text-align:center;
+}
 
-        const workbook = XLSX.read(buffer);
+h1{
+    color:#1e3a8a;
+    margin-bottom:20px;
+}
 
-        const sheet = workbook.Sheets[workbook.SheetNames[0]];
+.progress{
+    width:100%;
+    height:12px;
+    background:#d1d5db;
+    border-radius:20px;
+    overflow:hidden;
+    margin-bottom:10px;
+}
 
-        cards = XLSX.utils.sheet_to_json(sheet);
+#progressBar{
+    width:0%;
+    height:100%;
+    background:#2563eb;
+    transition:.3s;
+}
 
-        loadProgress();
+#progressText{
+    margin-bottom:20px;
+    color:#555;
+}
 
-        showCard();
+.card{
+    width:100%;
+    height:380px;
+    perspective:1000px;
+    margin-bottom:20px;
+}
 
-    });
+.card-inner{
+    position:relative;
+    width:100%;
+    height:100%;
+    transition:transform .6s;
+    transform-style:preserve-3d;
+}
 
-function showCard() {
+.card.flipped .card-inner{
+    transform:rotateY(180deg);
+}
 
-    if (current >= cards.length) {
+.card-front,
+.card-back{
+    position:absolute;
+    width:100%;
+    height:100%;
+    background:white;
+    border-radius:20px;
+    box-shadow:0 10px 25px rgba(0,0,0,.15);
+    backface-visibility:hidden;
+    display:flex;
+    flex-direction:column;
+    justify-content:center;
+    align-items:center;
+    padding:25px;
+}
 
-        alert("🎉 Bạn đã học hết!");
+.card-back{
+    transform:rotateY(180deg);
+}
 
-        localStorage.removeItem(STORAGE_KEY);
+.hanzi{
+    font-size:60px;
+    font-weight:bold;
+    color:#111827;
+}
 
-        return;
+#pinyin{
+    color:#2563eb;
+    margin-bottom:10px;
+}
+
+#meaning{
+    color:#16a34a;
+    margin-bottom:20px;
+}
+
+.example{
+    width:100%;
+    text-align:left;
+    line-height:1.8;
+    font-size:18px;
+}
+
+.example hr{
+    margin:15px 0;
+}
+
+button{
+    border:none;
+    border-radius:12px;
+    padding:14px 22px;
+    font-size:16px;
+    cursor:pointer;
+    transition:.2s;
+}
+
+button:hover{
+    transform:translateY(-2px);
+}
+
+#flipBtn{
+    width:100%;
+    background:#2563eb;
+    color:white;
+    margin-bottom:15px;
+}
+
+.buttons{
+    display:flex;
+    gap:10px;
+}
+
+#knowBtn{
+    flex:1;
+    background:#22c55e;
+    color:white;
+}
+
+#dontKnowBtn{
+    flex:1;
+    background:#ef4444;
+    color:white;
+}
+
+@media(max-width:600px){
+
+    .card{
+        height:330px;
     }
 
-    let card = cards[current];
-
-    document.getElementById("front").innerHTML = card["Chinese"];
-
-    document.getElementById("back").innerHTML =
-        "<b>" + card["Pinyin"] + "</b><br><br>" +
-        card["Meaning"];
-
-    document.getElementById("back").style.display = "none";
-
-    showingFront = true;
-
-    updateProgress();
-
-}
-
-document.getElementById("flipBtn").onclick = function () {
-
-    if (showingFront) {
-
-        document.getElementById("back").style.display = "block";
-
-    } else {
-
-        document.getElementById("back").style.display = "none";
-
+    .hanzi{
+        font-size:50px;
     }
 
-    showingFront = !showingFront;
-
-}
-
-document.getElementById("knowBtn").onclick = function () {
-
-    current++;
-
-    saveProgress();
-
-    showCard();
-
-}
-
-document.getElementById("dontKnowBtn").onclick = function () {
-
-    cards.push(cards[current]);
-
-    current++;
-
-    saveProgress();
-
-    showCard();
-
-}
-
-function updateProgress() {
-
-    let percent = current / cards.length * 100;
-
-    document.getElementById("progressBar").style.width = percent + "%";
-
-    document.getElementById("progressText").innerHTML =
-        current + " / " + cards.length;
-
-}
-
-function saveProgress() {
-
-    localStorage.setItem(STORAGE_KEY, current);
-
-}
-
-function loadProgress() {
-
-    let saved = localStorage.getItem(STORAGE_KEY);
-
-    if (saved) {
-
-        current = parseInt(saved);
-
+    .example{
+        font-size:16px;
     }
 
 }
