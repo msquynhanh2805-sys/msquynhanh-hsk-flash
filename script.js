@@ -1,5 +1,5 @@
 /* ==========================================
-   1. BỘ TẠO ÂM THANH SIÊU ÊM (NO DISTORTION / NO HOWLING)
+   1. BỘ TẠO ÂM THANH PIANO ẤM ÁP (ACOUSTIC PIANO SYNTH)
    ========================================== */
 const AudioFX = {
   ctx: null,
@@ -9,70 +9,75 @@ const AudioFX = {
     }
   },
 
-  // Âm thanh ĐÚNG: Chuông chén đơn (Single Soft Bell) - 1 nốt duy nhất, êm ái
+  // Hàm tạo tiếng Piano chuẩn với búa gõ & bồi âm
+  playPianoNote(freq, duration = 0.8, volume = 0.15) {
+    this.init();
+    const now = this.ctx.currentTime;
+
+    // Sóng chính (Thân âm Piano)
+    const osc1 = this.ctx.createOscillator();
+    const gain1 = this.ctx.createGain();
+    osc1.type = 'triangle'; // Dạng sóng tam giác cho chất âm giống dây đàn
+    osc1.frequency.setValueAtTime(freq, now);
+
+    // Bồi âm cao (Tạo độ trong cho Piano)
+    const osc2 = this.ctx.createOscillator();
+    const gain2 = this.ctx.createGain();
+    osc2.type = 'sine';
+    osc2.frequency.setValueAtTime(freq * 2, now); // Bội số bậc 2
+
+    // Tiếng gõ búa nhẹ (Hammer attack)
+    const hammer = this.ctx.createOscillator();
+    const hammerGain = this.ctx.createGain();
+    hammer.type = 'sine';
+    hammer.frequency.setValueAtTime(120, now);
+
+    // Đồ thị âm lượng: Đột ngột rồi tắt dần (Exponential Decay)
+    gain1.gain.setValueAtTime(volume, now);
+    gain1.gain.exponentialRampToValueAtTime(0.0001, now + duration);
+
+    gain2.gain.setValueAtTime(volume * 0.3, now);
+    gain2.gain.exponentialRampToValueAtTime(0.0001, now + (duration * 0.7));
+
+    hammerGain.gain.setValueAtTime(volume * 0.2, now);
+    hammerGain.gain.exponentialRampToValueAtTime(0.0001, now + 0.03);
+
+    // Kết nối âm thanh
+    osc1.connect(gain1);
+    osc2.connect(gain2);
+    hammer.connect(hammerGain);
+
+    gain1.connect(this.ctx.destination);
+    gain2.connect(this.ctx.destination);
+    hammerGain.connect(this.ctx.destination);
+
+    // Phát âm thanh
+    osc1.start(now);
+    osc2.start(now);
+    hammer.start(now);
+
+    osc1.stop(now + duration);
+    osc2.stop(now + duration);
+    hammer.stop(now + 0.03);
+  },
+
+  // Trả lời ĐÚNG: Nốt C5 (Đồ) ngân nhẹ, ấm áp
   playCorrect() {
-    this.init();
-    const now = this.ctx.currentTime;
-    
-    const osc = this.ctx.createOscillator();
-    const gain = this.ctx.createGain();
-
-    osc.type = 'sine';
-    osc.frequency.setValueAtTime(880, now); // Nốt A5 nhẹ nhàng, không rít
-
-    // Giảm master gain để không bị chói
-    gain.gain.setValueAtTime(0.08, now);
-    gain.gain.exponentialRampToValueAtTime(0.0001, now + 0.25);
-
-    osc.connect(gain);
-    gain.connect(this.ctx.destination);
-
-    osc.start(now);
-    osc.stop(now + 0.25);
+    this.playPianoNote(523.25, 0.7, 0.18); 
   },
 
-  // Âm thanh SAI: Tiếng Pop / Thump trầm khẽ
+  // Trả lời SAI: Nốt F3 (Phà) trầm nhẹ
   playWrong() {
-    this.init();
-    const now = this.ctx.currentTime;
-    const osc = this.ctx.createOscillator();
-    const gain = this.ctx.createGain();
-
-    osc.type = 'sine';
-    osc.frequency.setValueAtTime(180, now); 
-    osc.frequency.exponentialRampToValueAtTime(100, now + 0.1);
-
-    gain.gain.setValueAtTime(0.1, now);
-    gain.gain.exponentialRampToValueAtTime(0.0001, now + 0.1);
-
-    osc.connect(gain);
-    gain.connect(this.ctx.destination);
-
-    osc.start(now);
-    osc.stop(now + 0.1);
+    this.playPianoNote(174.61, 0.4, 0.12);
   },
 
-  // Âm thanh PHÁO HOA: Hợp âm rải Acoustic ấm áp
+  // PHÁO HOA: Hợp âm rải C-E-G-C (Đồ - Mi - Son - Đồ) du dương
   playCelebration() {
-    this.init();
-    const now = this.ctx.currentTime;
-    const notes = [440, 554.37, 659.25, 880]; // A4, C#5, E5, A5
-
+    const notes = [523.25, 659.25, 783.99, 1046.50];
     notes.forEach((freq, idx) => {
-      const osc = this.ctx.createOscillator();
-      const gain = this.ctx.createGain();
-
-      osc.type = 'sine';
-      osc.frequency.setValueAtTime(freq, now + idx * 0.08);
-
-      gain.gain.setValueAtTime(0.06, now + idx * 0.08);
-      gain.gain.exponentialRampToValueAtTime(0.0001, now + idx * 0.08 + 0.4);
-
-      osc.connect(gain);
-      gain.connect(this.ctx.destination);
-
-      osc.start(now + idx * 0.08);
-      osc.stop(now + idx * 0.08 + 0.4);
+      setTimeout(() => {
+        this.playPianoNote(freq, 0.9, 0.12);
+      }, idx * 120);
     });
   }
 };
