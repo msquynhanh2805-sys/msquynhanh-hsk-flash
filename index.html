@@ -32,31 +32,41 @@
 
     <hr class="section-divider">
 
-    <!-- DẠNG 2: SẮP XẾP CÂU PINYIN + ĐẾM NGƯỢC PHẢN XẠ -->
+    <!-- DẠNG 2: SẮP XẾP CÂU PINYIN (60s + Nút Pause + Lưu tiến độ) -->
     <section class="quiz-section">
       <div class="quiz-card">
         <div class="badge-wrapper">
-          <span class="badge blue">⚡ Sắp Xếp Câu Phản Xạ (10s)</span>
+          <span class="badge blue">⚡ Sắp Xếp Câu Pinyin</span>
         </div>
 
-        <!-- Thanh thời gian đếm ngược -->
+        <!-- Tiến độ & Thời gian -->
+        <div class="quiz-meta">
+          <span class="progress-text" id="scramble-progress">Tiến độ: 0/0</span>
+          <span class="timer-text" id="timer-text">⏱️ 60s</span>
+        </div>
+
         <div class="timer-container">
           <div id="timer-bar" class="timer-bar"></div>
         </div>
 
-        <p class="quiz-prompt">Sắp xếp các từ Pinyin thành câu trước khi hết giờ:</p>
+        <p class="quiz-prompt">Sắp xếp các từ Pinyin thành câu đúng (Click từ đã chọn để hủy):</p>
         <h2 id="scramble-meaning" class="quiz-meaning">"..."</h2>
 
+        <!-- Ô xếp câu của người dùng -->
         <div class="sentence-builder-box" id="user-sentence">
           <span class="placeholder-text">Click chọn các từ pinyin bên dưới...</span>
         </div>
 
+        <!-- Ô chứa các từ Pinyin xáo trộn -->
         <div class="word-pool" id="word-pool"></div>
 
         <div class="quiz-footer">
-          <button class="btn-reset" onclick="initSentenceScrambleQuiz()">⏭️ Câu tiếp theo</button>
-          <p id="scramble-feedback" class="feedback-msg"></p>
+          <button id="btn-pause" class="btn-control" onclick="togglePause()">⏸️ Tạm dừng</button>
+          <button class="btn-control" onclick="resetCurrentSentence()">🔄 Làm lại câu này</button>
+          <button class="btn-control primary" onclick="skipToNextSentence()">⏭️ Câu tiếp theo</button>
         </div>
+
+        <p id="scramble-feedback" class="feedback-msg"></p>
       </div>
     </section>
   </div>
