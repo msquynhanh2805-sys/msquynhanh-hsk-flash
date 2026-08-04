@@ -12,11 +12,11 @@
 <body>
   <div class="app-container">
     <header>
-      <h1>🇨🇳 HSK 1 Master App</h1>
+      <h1>🇨🇳 HSK 1 App Luyện Tập</h1>
       <button id="theme-toggle" class="btn-theme" onclick="toggleDarkMode()">🌙 Dark Mode</button>
     </header>
 
-    <!-- THANH NÚT CHUYỂN TAB -->
+    <!-- THANH CHUYỂN TAB -->
     <nav class="tab-nav">
       <button class="tab-btn active" onclick="switchTab('tab-mc', this)">
         📚 Ôn Từ Vựng
@@ -28,13 +28,31 @@
 
     <!-- ==================== TAB 1: ÔN TỪ VỰNG ==================== -->
     <section id="tab-mc" class="tab-content active">
-      <div class="quiz-card">
+      <!-- 1. Màn hình Cấu hình Session -->
+      <div id="mc-setup-screen" class="card setup-card">
+        <h2>📚 Ôn Tập Từ Vựng</h2>
+        <p class="stats-info">Tổng kho: <b id="mc-total-count">0</b> từ | Đã học: <b id="mc-learned-count">0</b> từ | Còn lại: <b id="mc-remain-count">0</b> từ</p>
+        
+        <div class="input-group">
+          <label for="mc-session-input">Hôm nay m muốn luyện bao nhiêu từ?</label>
+          <input type="number" id="mc-session-input" value="30" min="1">
+        </div>
+
+        <div class="action-buttons">
+          <button class="btn-control primary" onclick="startMcSession()">🚀 Bắt đầu luyện tập</button>
+          <button class="btn-control warning" id="mc-wrong-btn" onclick="startMcWrongReview()" style="display:none;">
+            ⚠️ Ôn câu sai (<span id="mc-wrong-count">0</span>)
+          </button>
+        </div>
+      </div>
+
+      <!-- 2. Màn hình Luyện tập -->
+      <div id="mc-quiz-screen" class="card quiz-card" style="display: none;">
         <div class="quiz-header">
-          <span class="badge" id="mc-mode-badge">Chế độ: Toàn bộ</span>
+          <span class="badge" id="mc-mode-badge">Phiên học</span>
           <span class="progress-info" id="mc-progress-text">0/0</span>
         </div>
 
-        <!-- Thanh tiến trình -->
         <div class="progress-bar-container">
           <div class="progress-bar-fill" id="mc-progress-bar"></div>
         </div>
@@ -43,27 +61,58 @@
         <h2 id="mc-meaning" class="quiz-meaning">"..."</h2>
 
         <div id="mc-options" class="options-list"></div>
-
         <p id="mc-feedback" class="feedback-msg"></p>
 
         <div class="quiz-footer">
-          <button class="btn-control warning" id="mc-review-btn" onclick="toggleMcReviewMode()">
-            ⚠️ Ôn câu sai (<span id="mc-wrong-count">0</span>)
-          </button>
           <button class="btn-control" onclick="skipMcQuestion()">Bỏ qua ⏭️</button>
+        </div>
+      </div>
+
+      <!-- 3. Màn hình Hoàn thành Session -->
+      <div id="mc-summary-screen" class="card summary-card" style="display: none;">
+        <h2>🎉 Hoàn Thành Mục Tiêu!</h2>
+        <p class="summary-desc">M đã hoàn thành xong phiên học từ vựng hôm nay.</p>
+        
+        <div class="summary-stats">
+          <div class="stat-item"><span id="mc-sum-done">0</span><span>Từ vừa học</span></div>
+          <div class="stat-item"><span id="mc-sum-correct">0</span><span>Đúng lần 1</span></div>
+          <div class="stat-item"><span id="mc-sum-wrong">0</span><span>Cần ôn lại</span></div>
+        </div>
+
+        <div class="action-buttons">
+          <button class="btn-control primary" onclick="continueMcSession()">⏩ Học tiếp (Nhập số lượng mới)</button>
+          <button class="btn-control" onclick="finishMcSession()">🛑 Kết thúc hôm nay</button>
         </div>
       </div>
     </section>
 
     <!-- ==================== TAB 2: SẮP XẾP CÂU ==================== -->
     <section id="tab-builder" class="tab-content">
-      <div class="quiz-card">
+      <!-- 1. Màn hình Cấu hình Session -->
+      <div id="builder-setup-screen" class="card setup-card">
+        <h2>🧩 Sắp Xếp Câu Hoàn Chỉnh</h2>
+        <p class="stats-info">Tổng kho: <b id="builder-total-count">0</b> câu | Đã học: <b id="builder-learned-count">0</b> câu | Còn lại: <b id="builder-remain-count">0</b> câu</p>
+        
+        <div class="input-group">
+          <label for="builder-session-input">Hôm nay m muốn ghép bao nhiêu câu?</label>
+          <input type="number" id="builder-session-input" value="15" min="1">
+        </div>
+
+        <div class="action-buttons">
+          <button class="btn-control primary" onclick="startBuilderSession()">🚀 Bắt đầu luyện tập</button>
+          <button class="btn-control warning" id="builder-wrong-btn" onclick="startBuilderWrongReview()" style="display:none;">
+            ⚠️ Ôn câu sai (<span id="builder-wrong-count">0</span>)
+          </button>
+        </div>
+      </div>
+
+      <!-- 2. Màn hình Luyện tập -->
+      <div id="builder-quiz-screen" class="card quiz-card" style="display: none;">
         <div class="quiz-header">
-          <span class="badge" id="builder-mode-badge">Chế độ: Toàn bộ</span>
+          <span class="badge" id="builder-mode-badge">Phiên học</span>
           <span class="progress-info" id="builder-progress-text">0/0</span>
         </div>
 
-        <!-- Thanh tiến trình -->
         <div class="progress-bar-container">
           <div class="progress-bar-fill" id="builder-progress-bar"></div>
         </div>
@@ -71,28 +120,34 @@
         <p class="quiz-prompt">Sắp xếp các từ thành câu chuẩn nghĩa:</p>
         <h2 id="builder-meaning" class="quiz-meaning">"..."</h2>
 
-        <!-- Khung chứa từ m chọn -->
         <div class="sentence-builder-box" id="selected-words-box">
           <p class="placeholder-text">Click vào từng từ bên dưới để ghép câu...</p>
         </div>
 
-        <!-- Khung từ xáo trộn -->
         <div id="word-pool" class="word-pool"></div>
-
         <p id="builder-feedback" class="feedback-msg"></p>
 
-        <div class="quiz-footer main-actions">
-          <button class="btn-control primary" onclick="checkBuilderAnswer()">
-            ✅ Kiểm Tra
-          </button>
+        <div class="quiz-footer">
+          <button class="btn-control primary" onclick="checkBuilderAnswer()">✅ Kiểm Tra</button>
           <button class="btn-control" onclick="resetBuilderSelection()">🔄 Chọn Lại</button>
           <button class="btn-control" onclick="skipBuilderSentence()">⏭️ Bỏ Qua</button>
         </div>
+      </div>
 
-        <div class="quiz-footer sub-actions">
-          <button class="btn-control warning" id="builder-review-btn" onclick="toggleBuilderReviewMode()">
-            ⚠️ Ôn câu sai (<span id="builder-wrong-count">0</span>)
-          </button>
+      <!-- 3. Màn hình Hoàn thành Session -->
+      <div id="builder-summary-screen" class="card summary-card" style="display: none;">
+        <h2>🎉 Tuyệt Vời!</h2>
+        <p class="summary-desc">M đã hoàn thành xong phiên ghép câu hôm nay.</p>
+        
+        <div class="summary-stats">
+          <div class="stat-item"><span id="builder-sum-done">0</span><span>Câu vừa ghép</span></div>
+          <div class="stat-item"><span id="builder-sum-correct">0</span><span>Đúng lần 1</span></div>
+          <div class="stat-item"><span id="builder-sum-wrong">0</span><span>Cần ôn lại</span></div>
+        </div>
+
+        <div class="action-buttons">
+          <button class="btn-control primary" onclick="continueBuilderSession()">⏩ Học tiếp (Nhập số lượng mới)</button>
+          <button class="btn-control" onclick="finishBuilderSession()">🛑 Kết thúc hôm nay</button>
         </div>
       </div>
     </section>
