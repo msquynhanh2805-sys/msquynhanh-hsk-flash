@@ -88,7 +88,7 @@ function startMcSession() {
 
   mcSessionList = mcList.slice(mcGlobalIndex, mcGlobalIndex + countInput);
   if (mcSessionList.length === 0) {
-    alert("M đã hoàn thành toàn bộ kho từ vựng! Hệ thống sẽ reset lại từ đầu.");
+    alert("Bạn đã hoàn thành toàn bộ kho từ vựng! Hệ thống sẽ reset lại từ đầu.");
     mcGlobalIndex = 0;
     localStorage.setItem('hsk1_mc_index', 0);
     mcSessionList = mcList.slice(0, countInput);
@@ -187,7 +187,7 @@ function checkMultipleChoice(selected) {
 
   } else {
     feedback.style.color = '#d1242f';
-    feedback.innerText = '❌ Sai rồi, thử lại!';
+    feedback.innerText = '❌ Chưa đúng, thử lại nhé!';
     mcHadWrongInCurrent = true;
 
     if (!mcWrongList.some(item => item.hanzi === currentMcItem.hanzi)) {
@@ -285,7 +285,7 @@ function startBuilderSession() {
 
   builderSessionList = builderList.slice(builderGlobalIndex, builderGlobalIndex + countInput);
   if (builderSessionList.length === 0) {
-    alert("M đã ghép hết kho câu ví dụ! Hệ thống sẽ reset lại từ đầu.");
+    alert("Bạn đã ghép hết kho câu ví dụ! Hệ thống sẽ reset lại từ đầu.");
     builderGlobalIndex = 0;
     localStorage.setItem('hsk1_builder_index', 0);
     builderSessionList = builderList.slice(0, countInput);
@@ -395,7 +395,7 @@ function checkBuilderAnswer() {
 
   if (userSelectedPool.length === 0) {
     feedback.style.color = '#d1242f';
-    feedback.innerText = '⚠️ M chưa chọn từ nào kìa!';
+    feedback.innerText = '⚠️ Bạn chưa chọn từ nào kìa!';
     return;
   }
 
@@ -425,7 +425,7 @@ function checkBuilderAnswer() {
 
   } else {
     feedback.style.color = '#d1242f';
-    feedback.innerText = `❌ Sai thứ tự từ rồi, thử lại xem!`;
+    feedback.innerText = `❌ Sai thứ tự từ rồi, thử lại nhé!`;
     builderHadWrongInCurrent = true;
 
     if (!builderWrongList.some(item => item.exampleVn === currentItem.exampleVn)) {
