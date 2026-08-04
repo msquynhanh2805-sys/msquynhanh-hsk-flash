@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>HSK 1 Luyện Phản Xạ Nói</title>
+  <title>HSK 1 Luyện Tập</title>
   <link rel="stylesheet" href="style.css">
   
   <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
@@ -16,13 +16,19 @@
       <button id="theme-toggle" class="btn-theme" onclick="toggleDarkMode()">🌙 Dark Mode</button>
     </header>
 
-    <!-- DẠNG 1: TRẮC NGHIỆM CHỌN HÁN TỰ / PINYIN -->
-    <section class="quiz-section">
+    <!-- THANH CHUYỂN TAB -->
+    <nav class="tab-nav">
+      <button class="tab-btn active" onclick="switchTab('tab-mc', this)">
+        ❇️ Ôn Từ Vựng
+      </button>
+      <button class="tab-btn" onclick="switchTab('tab-builder', this)">
+        🧩 Sắp Xếp Câu
+      </button>
+    </nav>
+
+    <!-- TAB 1: TRẮC NGHIỆM CHỌN HÁN TỰ / PINYIN -->
+    <section id="tab-mc" class="tab-content active">
       <div class="quiz-card">
-        <div class="badge-wrapper">
-          <span class="badge green">❇️ Dạng 1: Ôn Tập Từ Vựng</span>
-        </div>
-        
         <div class="quiz-meta">
           <span class="progress-text" id="mc-progress">Tiến độ từ: 0/0</span>
           <button class="btn-control" onclick="skipMcQuestion()" style="padding: 2px 8px; font-size: 11px;">Bỏ qua ⏭️</button>
@@ -36,41 +42,34 @@
       </div>
     </section>
 
-    <hr class="section-divider">
-
-    <!-- DẠNG 2: LUYỆN NÓI CÂU BẰNG MICRO (CHE PINYIN) -->
-    <section class="quiz-section">
+    <!-- TAB 2: SẮP XẾP TỪ THÀNH CÂU -->
+    <section id="tab-builder" class="tab-content">
       <div class="quiz-card">
-        <div class="badge-wrapper">
-          <span class="badge blue">🎙️ Dạng 2: Luyện Phản Xạ Nói Câu</span>
-        </div>
-
         <div class="quiz-meta">
-          <span class="progress-text" id="speaking-progress">Tiến độ câu: 0/0</span>
-          <button class="btn-control" onclick="speakSample()" style="padding: 4px 10px; font-size: 12px; color: #0969da;">🔊 Nghe đọc mẫu</button>
+          <span class="progress-text" id="builder-progress">Tiến độ câu: 0/0</span>
+          <button class="btn-control" onclick="speakSample()" style="padding: 4px 10px; font-size: 12px; color: #0969da;">🔊 Nghe câu mẫu</button>
         </div>
 
-        <p class="quiz-prompt">Nhìn nghĩa và đọc câu tiếng Trung tương ứng:</p>
-        <h2 id="speaking-meaning" class="quiz-meaning">"..."</h2>
+        <p class="quiz-prompt">Dịch nghĩa sau sang tiếng Trung bằng cách ghép từ:</p>
+        <h2 id="builder-meaning" class="quiz-meaning">"..."</h2>
 
-        <!-- Khung Pinyin bị che hoàn toàn -->
-        <div class="sentence-builder-box" id="speaking-box">
-          <p style="color: #57606a; font-size: 13px; margin-bottom: 4px;">Pinyin đáp án:</p>
-          <p id="speaking-pinyin-hint" style="font-weight: bold; font-size: 18px; letter-spacing: 2px;">🙈 * * * * * * *</p>
-          <button class="btn-control" onclick="showPinyinHint()" style="margin-top: 8px; font-size: 11px; padding: 2px 8px;">💡 Mở gợi ý Pinyin</button>
+        <!-- Khung chứa các từ đã chọn -->
+        <div class="sentence-builder-box" id="selected-words-box">
+          <p class="placeholder-text" id="builder-placeholder">Click vào các từ bên dưới để ghép câu...</p>
         </div>
+
+        <!-- Khung chứa các từ bị xáo trộn để chọn -->
+        <div id="word-pool" class="word-pool"></div>
 
         <div class="quiz-footer" style="margin-top: 15px;">
-          <button class="btn-control primary" onclick="startListening()" style="font-size: 16px; padding: 12px 24px; width: 100%; max-width: 280px;">
-            🎙️ Bấm để nói
+          <button class="btn-control primary" onclick="checkBuilderAnswer()" style="font-size: 15px; padding: 10px 20px;">
+            ✅ Kiểm Tra Đáp Án
           </button>
+          <button class="btn-control" onclick="resetBuilderSelection()">🔄 Chọn Lại</button>
+          <button class="btn-control" onclick="skipBuilderSentence()">⏭️ Bỏ Qua</button>
         </div>
 
-        <div class="quiz-footer" style="margin-top: 10px;">
-          <button class="btn-control" onclick="skipSpeakingSentence()">⏭️ Bỏ qua câu này</button>
-        </div>
-
-        <p id="speaking-feedback" class="feedback-msg"></p>
+        <p id="builder-feedback" class="feedback-msg"></p>
       </div>
     </section>
   </div>
