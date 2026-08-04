@@ -3,38 +3,39 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>HSK 1 Vocabulary & Quiz Master</title>
+  <title>HSK 1 Vocabulary & Quiz</title>
   <link rel="stylesheet" href="style.css">
+  
   <!-- Thư viện SheetJS đọc file Excel -->
   <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
-  <!-- Thư viện Canvas Confetti bắn pháo hoa -->
+  <!-- Thư viện Canvas Confetti tạo hiệu ứng pháo hoa -->
   <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.5.1/dist/confetti.browser.min.js"></script>
 </head>
 <body>
   <div class="app-container">
     <header>
-      <h1>🇨🇳 HSK 1 Master App</h1>
-      <button id="theme-toggle" onclick="toggleDarkMode()">🌙 Dark Mode</button>
+      <h1>🇨🇳 HSK 1 Flashcards & Quiz</h1>
+      <button id="theme-toggle" class="btn-theme" onclick="toggleDarkMode()">🌙 Dark Mode</button>
     </header>
 
-    <!-- SECTION 1: FLASHCARD -->
+    <!-- SECTION 1: FLASHCARD LẬT 3D -->
     <section class="flashcard-section">
       <div class="card-counter">
-        <span id="current-index">1</span> / <span id="total-cards">143</span>
+        Thẻ <span id="current-index">1</span> / <span id="total-cards">143</span>
       </div>
 
       <div class="flashcard-container" onclick="flipCard()">
         <div class="flashcard" id="flashcard">
           <!-- Mặt trước -->
           <div class="card-face card-front">
-            <h2 id="card-hanzi">...</h2>
+            <h2 id="card-hanzi">Đang tải...</h2>
             <p id="card-pinyin">...</p>
-            <span class="hint">Click để lật thẻ 🔄</span>
+            <span class="hint">💡 Click để lật thẻ</span>
           </div>
           <!-- Mặt sau -->
           <div class="card-face card-back">
             <h3 id="card-meaning">...</h3>
-            <hr>
+            <hr class="card-divider">
             <p class="example-title">Ví dụ:</p>
             <p id="card-example-cn" class="example-cn">...</p>
             <p id="card-example-vn" class="example-vn">...</p>
@@ -43,24 +44,24 @@
       </div>
 
       <div class="controls">
-        <button onclick="prevCard()">⬅️ Từ trước</button>
-        <button onclick="nextCard()">Từ tiếp ➡️</button>
+        <button class="btn-nav" onclick="prevCard()">⬅️ Từ trước</button>
+        <button class="btn-nav" onclick="nextCard()">Từ tiếp ➡️</button>
       </div>
     </section>
 
-    <hr class="divider">
+    <hr class="section-divider">
 
-    <!-- SECTION 2: BÀI TẬP ÔN TẬP (QUIZ PHÁO HOA) -->
+    <!-- SECTION 2: BÀI TẬP ÔN TẬP & PHÁO HOA -->
     <section class="quiz-section">
       <div class="quiz-box">
         <div class="quiz-header">
           <span class="badge">🎆 Bài Tập Ôn Tập HSK 1</span>
-          <p class="quiz-prompt">Chọn Hán tự đúng cho nghĩa tiếng Việt sau:</p>
-          <h2 id="quiz-meaning">Đang tải dữ liệu...</h2>
+          <p class="quiz-prompt">Chọn Hán tự đúng với nghĩa tiếng Việt dưới đây:</p>
+          <h2 id="quiz-meaning" class="quiz-meaning">Đang tải câu hỏi...</h2>
         </div>
 
         <div id="quiz-options" class="options-grid">
-          <!-- Các lựa chọn đáp án được sinh tự động bằng JS -->
+          <!-- JS sẽ tạo các nút đáp án ở đây -->
         </div>
 
         <div class="quiz-footer">
