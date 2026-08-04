@@ -1,9 +1,4 @@
 let hskData = [];
-let currentIndex = 0;
-
-let currentTargetSentence = "";
-let currentWords = [];
-let userSelectedWords = [];
 
 // Khởi tạo app
 window.addEventListener('DOMContentLoaded', () => {
@@ -14,101 +9,148 @@ window.addEventListener('DOMContentLoaded', () => {
       const sheet = workbook.Sheets[workbook.SheetNames[0]];
       const rawData = XLSX.utils.sheet_to_json(sheet, { header: 1 });
 
-      // Lấy từ dòng thứ 2 (5 cột: Hanzi, Pinyin, Nghĩa, Ví dụ VN, Ví dụ pinyin)
       hskData = rawData.slice(1).map(row => ({
         hanzi: row[0] || '',
         pinyin: row[1] || '',
         meaning: row[2] || '',
         exampleVn: row[3] || '',
         examplePinyin: row[4] || ''
-      })).filter(item => item.hanzi);
+      })).filter(item => item.hanzi && item.meaning);
 
       if (hskData.length > 0) {
-        const savedIndex = localStorage.getItem('hsk1_current_index');
-        if (savedIndex !== null) {
-          currentIndex = parseInt(savedIndex, 10);
-        }
-
-        document.getElementById('total-cards').innerText = hskData.length;
-        renderFlashcard();
-        generateSentenceQuiz();
+        initMultipleChoiceQuiz();
+        initSentenceScrambleQuiz();
       }
     })
-    .catch(err => console.error("Lỗi khi đọc file Excel:", err));
+    .catch(err => console.error("Lỗi đọc file Excel:", err));
 });
 
 /* ==========================================
-   1. LOGIC FLASHCARD
+   DẠNG 1: TRẮC NGHIỆM CHỌN HÁN TỰ + PINYIN
    ========================================== */
-function renderFlashcard() {
-  const item = hskData[currentIndex];
+let currentMcCorrectItem = null;
 
-  document.getElementById('current-index').innerText = currentIndex + 1;
-  document.getElementById('card-hanzi').innerText = item.hanzi;
-  document.getElementById('card-pinyin').innerText = item.pinyin;
-  document.getElementById('card-meaning').innerText = item.meaning;
-  document.getElementById('card-example-cn').innerText = item.examplePinyin;
-  document.getElementById('card-example-vn').innerText = item.exampleVn;
+function initMultipleChoiceQuiz() {
+  document.getElementById('mc-feedback').innerText = '';
+  
+  currentMcCorrectItem = hskData[Math.floor(Math.random() * hskData.length)];
+  document.getElementById('mc-meaning').innerText = `"${currentMcCorrectItem.meaning}"`;
 
-  const cardElement = document.getElementById('flashcard');
-  if (cardElement) cardElement.classList.remove('flipped');
+  const wrongOptions = hskData
+    .filter(item => item.hanzi !== currentMcCorrectItem.hanzi)
+    .sort(() => Math.random() - 0.5)
+    .slice(0, 2);
 
-  localStorage.setItem('hsk1_current_index', currentIndex);
+  const options = [currentMcCorrectItem, ...wrongOptions].sort(() => Math.random() - 0.5);
+
+  const optionsContainer = document.getElementById('mc-options');
+  optionsContainer.innerHTML = '';
+
+  options.forEach(opt => {
+    const btn = document.createElement('button');
+    btn.className = 'option-btn';
+    btn.onclick = () => checkMultipleChoice(opt);
+
+    btn.innerHTML = `
+      <span class="option-hanzi">${opt.hanzi}</span>
+      <span class="option-pinyin">${opt.pinyin}</span>
+    `;
+    optionsContainer.appendChild(btn);
+  });
 }
 
-function flipCard() {
-  document.getElementById('flashcard').classList.toggle('flipped');
-}
+function checkMultipleChoice(selectedItem) {
+  const feedback = document.getElementById('mc-feedback');
 
-function nextCard() {
-  currentIndex = (currentIndex + 1) % hskData.length;
-  renderFlashcard();
-}
+  if (selectedItem.hanzi === currentMcCorrectItem.hanzi) {
+    feedback.style.color = '#1f883d';
+    feedback.innerText = '🎉 Chính xác!';
+    
+    if (typeof confetti === 'function') {
+      confetti({ particleCount: 80, spread: 60, origin: { y: 0.3 } });
+    }
 
-function prevCard() {
-  currentIndex = (currentIndex - 1 + hskData.length) % hskData.length;
-  renderFlashcard();
+    setTimeout(initMultipleChoiceQuiz, 1500);
+  } else {
+    feedback.style.color = '#d1242f';
+    feedback.innerText = '❌ Sai rồi, thử lại xem!';
+  }
 }
 
 /* ==========================================
-   2. LOGIC SẮP XẾP CÂU & PHÁO HOA
+   DẠNG 2: SẮP XẾP CÂU PINYIN + TIMER 10S
    ========================================== */
-function generateSentenceQuiz() {
-  document.getElementById('quiz-feedback').innerText = '';
-  document.getElementById('user-sentence').innerHTML = '<span class="placeholder-text">Click chọn các từ bên dưới để ghép câu...</span>';
+let currentTargetSentence = "";
+let currentWords = [];
+let userSelectedWords = [];
+let timerInterval = null;
+let timeLeft = 10; // 10 giây
+let isQuizActive = true;
+
+function initSentenceScrambleQuiz() {
+  clearInterval(timerInterval); // Reset timer cũ
+  isQuizActive = true;
+  timeLeft = 10;
+  
+  document.getElementById('scramble-feedback').innerText = '';
+  document.getElementById('user-sentence').innerHTML = '<span class="placeholder-text">Click chọn các từ pinyin bên dưới...</span>';
   userSelectedWords = [];
 
-  const validItems = hskData.filter(item => item.examplePinyin && item.examplePinyin.trim().length > 0);
+  const validItems = hskData.filter(item => item.examplePinyin && item.exampleVn);
   if (validItems.length === 0) return;
 
   const selectedItem = validItems[Math.floor(Math.random() * validItems.length)];
-  currentTargetSentence = selectedItem.examplePinyin.replace(/[。!？]/g, '').trim();
   
-  document.getElementById('sentence-meaning').innerText = `"${selectedItem.exampleVn || selectedItem.meaning}"`;
+  document.getElementById('scramble-meaning').innerText = `"${selectedItem.exampleVn}"`;
+  currentTargetSentence = selectedItem.examplePinyin.replace(/[。!？,.]/g, '').trim();
 
   let rawWords = currentTargetSentence.split(' ').filter(w => w.trim() !== '');
-  if (rawWords.length <= 1) {
-    rawWords = currentTargetSentence.split('');
-  }
-
   currentWords = [...rawWords].sort(() => Math.random() - 0.5);
+
   renderWordPool();
+  startTimer();
+}
+
+function startTimer() {
+  const timerBar = document.getElementById('timer-bar');
+  timerBar.style.width = '100%';
+  timerBar.style.backgroundColor = '#2da44e';
+
+  timerInterval = setInterval(() => {
+    timeLeft -= 0.1;
+    const percentage = (timeLeft / 10) * 100;
+    timerBar.style.width = `${percentage}%`;
+
+    // Cảnh báo màu đỏ khi còn dưới 3 giây
+    if (timeLeft <= 3) {
+      timerBar.style.backgroundColor = '#cf222e';
+    }
+
+    // Hết giờ!
+    if (timeLeft <= 0) {
+      clearInterval(timerInterval);
+      isQuizActive = false;
+      showTimeOutResult();
+    }
+  }, 100);
 }
 
 function renderWordPool() {
   const poolContainer = document.getElementById('word-pool');
   poolContainer.innerHTML = '';
 
-  currentWords.forEach((word, index) => {
+  currentWords.forEach((word) => {
     const chip = document.createElement('button');
     chip.className = 'word-chip';
     chip.innerText = word;
-    chip.onclick = () => selectWord(word, index, chip);
+    chip.onclick = () => selectWord(word, chip);
     poolContainer.appendChild(chip);
   });
 }
 
-function selectWord(word, index, btnElement) {
+function selectWord(word, btnElement) {
+  if (!isQuizActive) return; // Nếu hết giờ thì khóa không cho bấm
+
   userSelectedWords.push(word);
   btnElement.style.visibility = 'hidden';
 
@@ -123,43 +165,42 @@ function selectWord(word, index, btnElement) {
   builderBox.appendChild(selectedChip);
 
   if (userSelectedWords.length === currentWords.length) {
+    clearInterval(timerInterval); // Dừng đồng hồ khi đã xếp xong
     checkSentenceAnswer();
   }
 }
 
-function resetSentence() {
-  userSelectedWords = [];
-  document.getElementById('user-sentence').innerHTML = '<span class="placeholder-text">Click chọn các từ bên dưới để ghép câu...</span>';
-  document.getElementById('quiz-feedback').innerText = '';
-  renderWordPool();
-}
-
 function checkSentenceAnswer() {
   const userResult = userSelectedWords.join(' ');
-  const cleanTarget = currentTargetSentence.split(' ').join(' ');
-  const feedback = document.getElementById('quiz-feedback');
+  const feedback = document.getElementById('scramble-feedback');
 
-  if (userResult === cleanTarget) {
+  if (userResult === currentTargetSentence) {
     feedback.style.color = '#1f883d';
-    feedback.innerText = '🎉 太棒了! Ghép câu chính xác!';
+    feedback.innerText = '⚡ Quá đỉnh! Phản xạ xuất sắc!';
 
     if (typeof confetti === 'function') {
-      confetti({
-        particleCount: 100,
-        spread: 70,
-        origin: { y: 0.7 }
-      });
+      confetti({ particleCount: 100, spread: 70, origin: { y: 0.8 } });
     }
 
-    setTimeout(generateSentenceQuiz, 2000);
+    setTimeout(initSentenceScrambleQuiz, 2000);
   } else {
     feedback.style.color = '#d1242f';
-    feedback.innerText = '❌ Chưa đúng thứ tự! Bấm "Làm lại câu này" để thử lại.';
+    feedback.innerText = `❌ Sai rồi! Đáp án đúng: ${currentTargetSentence}`;
   }
 }
 
+function showTimeOutResult() {
+  const feedback = document.getElementById('scramble-feedback');
+  feedback.style.color = '#d1242f';
+  feedback.innerText = `⏰ Hết 10s rồi! Đáp án đúng: "${currentTargetSentence}"`;
+  
+  // Hiện đáp án đúng lên khung ghép câu
+  const builderBox = document.getElementById('user-sentence');
+  builderBox.innerHTML = `<span style="color:#0969da; font-weight:bold; font-size:18px;">${currentTargetSentence}</span>`;
+}
+
 /* ==========================================
-   3. DARK MODE
+   DARK MODE
    ========================================== */
 function toggleDarkMode() {
   document.body.classList.toggle('dark-mode');
