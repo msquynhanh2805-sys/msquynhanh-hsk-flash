@@ -1,121 +1,547 @@
-let cards = [];
-let current = 0;
+/* ==========================================================================
+   CSS VARIABLES & THEMES (Quizlet Inspired)
+   ========================================================================== */
+:root {
+    --bg-primary: #f6f7fb;
+    --bg-card: #ffffff;
+    --text-primary: #1a1d28;
+    --text-secondary: #646f90;
+    --accent-color: #4255ff;
+    --accent-hover: #2e3ed4;
+    --success-color: #188038;
+    --success-bg: #e6f4ea;
+    --danger-color: #d93025;
+    --danger-bg: #fce8e6;
+    --warning-color: #f2994a;
+    --border-color: #e3e7f1;
+    --shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.05);
+    --shadow-md: 0 8px 24px rgba(0, 0, 0, 0.08);
+    --shadow-lg: 0 12px 32px rgba(66, 85, 255, 0.12);
+    --radius-lg: 16px;
+    --radius-md: 10px;
+    --transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+}
 
-const STORAGE_KEY = "hsk_flashcards_progress";
+[data-theme="dark"] {
+    --bg-primary: #0a0c10;
+    --bg-card: #141722;
+    --text-primary: #f0f2f8;
+    --text-secondary: #939bb4;
+    --border-color: #23283b;
+    --shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.3);
+    --shadow-md: 0 8px 24px rgba(0, 0, 0, 0.4);
+    --shadow-lg: 0 12px 32px rgba(0, 0, 0, 0.5);
+    --success-bg: rgba(24, 128, 56, 0.15);
+    --danger-bg: rgba(217, 48, 37, 0.15);
+}
 
-const card = document.getElementById("card");
-const progressBar = document.getElementById("progressBar");
-const progressText = document.getElementById("progressText");
+/* ==========================================================================
+   RESET & BASE STYLES
+   ========================================================================== */
+* {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+}
 
-const hanzi = document.getElementById("hanzi");
-const pinyin = document.getElementById("pinyin");
-const meaning = document.getElementById("meaning");
-const exampleVN = document.getElementById("exampleVN");
-const examplePY = document.getElementById("examplePY");
+body {
+    font-family: 'Inter', 'Noto Sans SC', sans-serif;
+    background-color: var(--bg-primary);
+    color: var(--text-primary);
+    min-height: 100vh;
+    display: flex;
+    justify-content: center;
+    align-items: flex-start;
+    padding: 20px;
+    transition: var(--transition);
+}
 
-fetch("data/HSK1_flashcards.xlsx")
-.then(res => res.arrayBuffer())
-.then(buffer => {
+.app-container {
+    width: 100%;
+    max-width: 860px;
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+}
 
-    const workbook = XLSX.read(buffer);
+/* ==========================================================================
+   HEADER & TOP BAR
+   ========================================================================== */
+.app-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 10px 0;
+}
 
-    const sheet = workbook.Sheets[workbook.SheetNames[0]];
+.logo {
+    font-size: 1.5rem;
+    font-weight: 700;
+    color: var(--accent-color);
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
 
-    cards = XLSX.utils.sheet_to_json(sheet);
+.icon-btn {
+    background: var(--bg-card);
+    border: 1px solid var(--border-color);
+    color: var(--text-primary);
+    width: 42px;
+    height: 42px;
+    border-radius: 50%;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: var(--shadow-sm);
+    transition: var(--transition);
+}
 
-    loadProgress();
+.icon-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-md);
+}
 
-    showCard();
+/* ==========================================================================
+   STATS DASHBOARD
+   ========================================================================== */
+.stats-dashboard {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+    gap: 16px;
+}
 
-});
+.stat-card {
+    background: var(--bg-card);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-md);
+    padding: 16px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    box-shadow: var(--shadow-sm);
+}
 
-function showCard(){
+.stat-icon {
+    width: 44px;
+    height: 44px;
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.2rem;
+}
 
-    if(current >= cards.length){
+.stat-icon.total { background: #e8ecef; color: #495057; }
+.stat-icon.remembered { background: var(--success-bg); color: var(--success-color); }
+.stat-icon.forgot { background: var(--danger-bg); color: var(--danger-color); }
+.stat-icon.progress { background: #e8f0fe; color: var(--accent-color); }
 
-        alert("🎉 Chúc mừng! Mày đã học hết bộ flashcard.");
+.stat-info {
+    display: flex;
+    flex-direction: column;
+}
 
-        localStorage.removeItem(STORAGE_KEY);
+.stat-value {
+    font-size: 1.25rem;
+    font-weight: 700;
+}
 
-        return;
+.stat-label {
+    font-size: 0.8rem;
+    color: var(--text-secondary);
+}
+
+/* ==========================================================================
+   CONTROLS BAR
+   ========================================================================== */
+.controls-bar {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px;
+    justify-content: space-between;
+}
+
+.search-box {
+    position: relative;
+    flex: 1;
+    min-width: 240px;
+}
+
+.search-box i {
+    position: absolute;
+    left: 14px;
+    top: 50%;
+    transform: translateY(-50%);
+    color: var(--text-secondary);
+}
+
+.search-box input {
+    width: 100%;
+    padding: 12px 16px 12px 40px;
+    border-radius: var(--radius-md);
+    border: 1px solid var(--border-color);
+    background: var(--bg-card);
+    color: var(--text-primary);
+    outline: none;
+    transition: var(--transition);
+}
+
+.search-box input:focus {
+    border-color: var(--accent-color);
+    box-shadow: 0 0 0 3px rgba(66, 85, 255, 0.15);
+}
+
+.filter-group {
+    display: flex;
+    gap: 12px;
+}
+
+.custom-select, .secondary-btn {
+    padding: 0 16px;
+    height: 44px;
+    border-radius: var(--radius-md);
+    border: 1px solid var(--border-color);
+    background: var(--bg-card);
+    color: var(--text-primary);
+    font-weight: 500;
+    cursor: pointer;
+    outline: none;
+    transition: var(--transition);
+}
+
+.secondary-btn {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.secondary-btn:hover, .custom-select:hover {
+    border-color: var(--accent-color);
+}
+
+/* ==========================================================================
+   PROGRESS BAR
+   ========================================================================== */
+.progress-container {
+    width: 100%;
+    height: 6px;
+    background: var(--border-color);
+    border-radius: 3px;
+    overflow: hidden;
+}
+
+.progress-bar {
+    height: 100%;
+    width: 0%;
+    background: var(--accent-color);
+    transition: width 0.3s ease;
+}
+
+/* ==========================================================================
+   FLASHCARD & 3D FLIP ENGINE
+   ========================================================================== */
+.flashcard-wrapper {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 16px;
+    perspective: 1000px;
+}
+
+.card-counter {
+    font-size: 0.9rem;
+    font-weight: 600;
+    color: var(--text-secondary);
+}
+
+.flashcard {
+    width: 100%;
+    height: 380px;
+    position: relative;
+    transform-style: preserve-3d;
+    transition: transform 0.6s cubic-bezier(0.4, 0.2, 0.2, 1);
+    cursor: pointer;
+}
+
+.flashcard.flipped {
+    transform: rotateY(180deg);
+}
+
+.card-face {
+    position: absolute;
+    width: 100%;
+    height: 100%;
+    backface-visibility: hidden;
+    border-radius: var(--radius-lg);
+    background: var(--bg-card);
+    border: 1px solid var(--border-color);
+    box-shadow: var(--shadow-md);
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    padding: 30px;
+    user-select: none;
+}
+
+/* Front Face */
+.card-front {
+    z-index: 2;
+}
+
+.favorite-btn {
+    position: absolute;
+    top: 20px;
+    right: 20px;
+    background: none;
+    border: none;
+    font-size: 1.5rem;
+    color: var(--text-secondary);
+    cursor: pointer;
+    transition: var(--transition);
+}
+
+.favorite-btn.active {
+    color: var(--warning-color);
+}
+
+.hanzi-display {
+    font-size: 5rem;
+    font-weight: 700;
+    color: var(--text-primary);
+    margin-bottom: 20px;
+}
+
+.flip-hint {
+    position: absolute;
+    bottom: 20px;
+    font-size: 0.85rem;
+    color: var(--text-secondary);
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+/* Back Face */
+.card-back {
+    transform: rotateY(180deg);
+}
+
+.card-back-content {
+    width: 100%;
+    text-align: center;
+}
+
+.pinyin-display {
+    font-size: 1.6rem;
+    font-weight: 600;
+    color: var(--accent-color);
+    margin-bottom: 8px;
+}
+
+.meaning-display {
+    font-size: 1.4rem;
+    font-weight: 500;
+    color: var(--text-primary);
+    margin-bottom: 16px;
+}
+
+.divider {
+    border: 0;
+    height: 1px;
+    background: var(--border-color);
+    margin: 16px auto;
+    width: 60%;
+}
+
+.example-box {
+    background: var(--bg-primary);
+    padding: 16px;
+    border-radius: var(--radius-md);
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.example-pinyin {
+    font-size: 1rem;
+    color: var(--text-secondary);
+    font-style: italic;
+}
+
+.example-vn {
+    font-size: 1.05rem;
+    color: var(--text-primary);
+    font-weight: 500;
+}
+
+/* Controls Below Card */
+.card-controls {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    width: 100%;
+    justify-content: center;
+    margin-top: 10px;
+}
+
+.action-btn {
+    padding: 12px 20px;
+    border-radius: var(--radius-md);
+    border: none;
+    font-size: 0.95rem;
+    font-weight: 600;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    transition: var(--transition);
+}
+
+.btn-forgot {
+    background: var(--danger-bg);
+    color: var(--danger-color);
+}
+
+.btn-remembered {
+    background: var(--success-bg);
+    color: var(--success-color);
+}
+
+.btn-flip {
+    background: var(--accent-color);
+    color: #ffffff;
+}
+
+.btn-forgot:hover { background: #fad2cf; }
+.btn-remembered:hover { background: #c6e7ce; }
+.btn-flip:hover { background: var(--accent-hover); }
+
+.nav-btn {
+    width: 44px;
+    height: 44px;
+    border-radius: 50%;
+    border: 1px solid var(--border-color);
+    background: var(--bg-card);
+    color: var(--text-primary);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: var(--transition);
+}
+
+.nav-btn:hover {
+    background: var(--border-color);
+}
+
+/* ==========================================================================
+   MODAL CONGRATULATION
+   ========================================================================== */
+.modal-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    background: rgba(0, 0, 0, 0.5);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.3s ease;
+    z-index: 1000;
+}
+
+.modal-overlay.active {
+    opacity: 1;
+    pointer-events: all;
+}
+
+.modal-content {
+    background: var(--bg-card);
+    padding: 40px;
+    border-radius: var(--radius-lg);
+    text-align: center;
+    max-width: 400px;
+    transform: translateY(20px);
+    transition: transform 0.3s ease;
+    box-shadow: var(--shadow-lg);
+}
+
+.modal-overlay.active .modal-content {
+    transform: translateY(0);
+}
+
+.modal-icon {
+    font-size: 3rem;
+    margin-bottom: 16px;
+}
+
+.modal-content h2 {
+    margin-bottom: 8px;
+}
+
+.modal-content p {
+    color: var(--text-secondary);
+    margin-bottom: 24px;
+}
+
+.primary-btn {
+    background: var(--accent-color);
+    color: white;
+    padding: 12px 24px;
+    border: none;
+    border-radius: var(--radius-md);
+    font-weight: 600;
+    cursor: pointer;
+    transition: var(--transition);
+}
+
+.primary-btn:hover {
+    background: var(--accent-hover);
+}
+
+/* ==========================================================================
+   RESPONSIVE DESIGN (Mobile First)
+   ========================================================================== */
+@media (max-width: 640px) {
+    .controls-bar {
+        flex-direction: column;
+    }
+    
+    .filter-group {
+        width: 100%;
+        justify-content: space-between;
     }
 
-    let c = cards[current];
-
-    hanzi.textContent = c["Hanzi"] || "";
-
-    pinyin.textContent = c["Pinyin"] || "";
-
-    meaning.textContent = c["Nghĩa"] || "";
-
-    exampleVN.textContent = c["Ví dụ VN"] || "";
-
-    examplePY.textContent = c["Ví dụ pinyin"] || "";
-
-    card.classList.remove("flipped");
-
-    updateProgress();
-
-}
-
-function updateProgress(){
-
-    progressText.innerHTML =
-        `${current+1} / ${cards.length}`;
-
-    progressBar.style.width =
-        ((current)/cards.length*100)+"%";
-
-}
-
-document.getElementById("flipBtn").onclick = () => {
-
-    card.classList.toggle("flipped");
-
-}
-
-card.onclick = () => {
-
-    card.classList.toggle("flipped");
-
-}
-
-document.getElementById("knowBtn").onclick = () => {
-
-    current++;
-
-    saveProgress();
-
-    showCard();
-
-}
-
-document.getElementById("dontKnowBtn").onclick = () => {
-
-    cards.push(cards[current]);
-
-    current++;
-
-    saveProgress();
-
-    showCard();
-
-}
-
-function saveProgress(){
-
-    localStorage.setItem(STORAGE_KEY,current);
-
-}
-
-function loadProgress(){
-
-    let saved = localStorage.getItem(STORAGE_KEY);
-
-    if(saved){
-
-        current = parseInt(saved);
-
+    .custom-select, .secondary-btn {
+        flex: 1;
     }
 
+    .flashcard {
+        height: 320px;
+    }
+
+    .hanzi-display {
+        font-size: 3.5rem;
+    }
+
+    .card-controls {
+        flex-wrap: wrap;
+    }
+
+    .action-btn {
+        flex: 1;
+        justify-content: center;
+        padding: 10px 14px;
+        font-size: 0.85rem;
+    }
+
+    .nav-btn {
+        order: 1;
+    }
 }
