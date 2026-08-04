@@ -5,83 +5,198 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>HSK1 Flashcards</title>
   <link rel="stylesheet" href="style.css">
-  <!-- Thư viện đọc Excel -->
+  <!-- Thư viện đọc Excel XLSX và hiệu ứng Pháo hoa Confetti -->
   <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
 </head>
 <body>
 
   <div class="app-container">
+    <!-- Header -->
     <header class="app-header">
       <h1>HSK1 Flashcards</h1>
-      <nav class="tab-nav">
-        <button id="btn-vocab" class="tab-btn active" onclick="switchTab('vocab')">📖 Từ Vựng</button>
-        <button id="btn-sentence" class="tab-btn" onclick="switchTab('sentence')">🧩 Ghép Cấu</button>
-      </nav>
+      <button class="dark-toggle" onclick="toggleDarkMode()">🌙</button>
     </header>
 
-    <!-- TAB 1: TỪ VỰNG -->
-    <main id="vocab-tab" class="tab-content active">
-      <!-- Màn hình Setup -->
-      <div id="vocab-setup" class="card-box">
+    <!-- Thanh chuyển Tab -->
+    <nav class="tab-nav">
+      <button class="tab-btn active" onclick="switchTab('mc-tab', this)">🎴 Trắc Nghiệm Từ Vựng</button>
+      <button class="tab-btn" onclick="switchTab('builder-tab', this)">🧩 Sắp Xếp Cấu Trúc Câu</button>
+    </nav>
+
+    <!-- ================= TAB 1: TRẮC NGHIỆM ================= -->
+    <main id="mc-tab" class="tab-content active">
+      
+      <!-- Màn hình 1: Thiết lập phiên -->
+      <div id="mc-setup-screen" class="card">
         <h2>Phiên Học Từ Vựng</h2>
-        <div class="stats-panel">
-          <p>📚 Tổng số từ: <span id="total-words">0</span></p>
-          <p>✅ Đã học: <span id="learned-words">0</span></p>
-          <p>⏳ Còn lại: <span id="remaining-words">0</span></p>
+        <div class="stats-overview">
+          <p>📚 Tổng số từ: <strong id="mc-total-count">0</strong></p>
+          <p>✅ Đã học: <strong id="mc-learned-count">0</strong></p>
+          <p>⏳ Còn lại: <strong id="mc-remain-count">0</strong></p>
         </div>
 
-        <div class="form-group">
-          <label for="vocab-session-count">Số từ muốn học phiên này:</label>
-          <input type="number" id="vocab-session-count" value="10" min="1" max="150">
+        <div class="input-group">
+          <label for="mc-session-input">Số từ muốn học phiên này:</label>
+          <input type="number" id="mc-session-input" value="10" min="1" max="100">
         </div>
 
-        <button class="primary-btn" onclick="startVocabSession()">🔥 Bắt đầu học</button>
+        <div class="action-buttons">
+          <button class="btn btn-primary" onclick="startMcSession()">🔥 Bắt đầu học</button>
+          <button id="mc-wrong-btn" class="btn btn-warning" style="display: none;" onclick="startMcWrongReview()">
+            ⚠️ Ôn câu sai (<span id="mc-wrong-count">0</span>)
+          </button>
+        </div>
       </div>
 
-      <!-- Màn hình Quiz -->
-      <div id="vocab-quiz" class="card-box" style="display: none;">
+      <!-- Màn hình 2: Làm bài Trắc nghiệm -->
+      <div id="mc-quiz-screen" class="card" style="display: none;">
+        <div class="quiz-header">
+          <span id="mc-mode-badge" class="badge">Phiên học mới</span>
+          <span id="mc-progress-text" class="progress-text">0/0</span>
+        </div>
+
         <div class="progress-bar-container">
-          <div id="vocab-progress-bar" class="progress-bar"></div>
-        </div>
-        <div id="vocab-progress-text" class="progress-text">0/0</div>
-
-        <div class="flashcard">
-          <div id="vocab-hanzi" class="hanzi-text">你好</div>
-          <div id="vocab-pinyin" class="pinyin-text">nǐ hǎo</div>
+          <div id="mc-progress-bar" class="progress-bar"></div>
         </div>
 
-        <div id="vocab-options" class="options-grid">
-          <!-- Các nút đáp án sẽ sinh tự động ở đây -->
+        <div class="question-box">
+          <p class="question-label">Chọn Hán tự & Pinyin cho nghĩa:</p>
+          <h2 id="mc-meaning" class="meaning-display">"..."</h2>
+        </div>
+
+        <div id="mc-options" class="options-grid"></div>
+
+        <div id="mc-feedback" class="feedback-msg"></div>
+
+        <div class="quiz-footer">
+          <button class="btn btn-text" onclick="skipMcQuestion()">Bỏ qua ➔</button>
+          <button class="btn btn-secondary" onclick="showMcSummary()">Kết thúc hôm nay</button>
         </div>
       </div>
+
+      <!-- Màn hình 3: Tổng kết & Lời khen -->
+      <div id="mc-summary-screen" class="card summary-card" style="display: none;">
+        <div class="praise-box">
+          <div id="mc-badge-icon" class="badge-icon">🎉</div>
+          <h2 id="mc-praise-title">Xuất sắc quá!</h2>
+          <p id="mc-praise-message">Bạn đã hoàn thành phiên học mượt mà.</p>
+        </div>
+
+        <div class="stats-grid">
+          <div class="stat-item">
+            <span class="stat-value" id="mc-sum-done">0</span>
+            <span class="stat-label">Tổng số từ</span>
+          </div>
+          <div class="stat-item correct">
+            <span class="stat-value" id="mc-sum-correct">0</span>
+            <span class="stat-label">Đúng lần đầu</span>
+          </div>
+          <div class="stat-item wrong">
+            <span class="stat-value" id="mc-sum-wrong">0</span>
+            <span class="stat-label">Cần ôn lại</span>
+          </div>
+        </div>
+
+        <div class="summary-actions">
+          <button class="btn btn-primary" onclick="continueMcSession()">🔥 Học tiếp phiên nữa</button>
+          <button class="btn btn-secondary" onclick="finishMcSession()">☕ Nghỉ ngơi hôm nay</button>
+        </div>
+      </div>
+
     </main>
 
-    <!-- TAB 2: GHÉP CÂU -->
-    <main id="sentence-tab" class="tab-content" style="display: none;">
-      <div id="sentence-quiz" class="card-box">
-        <h2>Luyện Ghép Câu HSK1</h2>
-        <div class="progress-bar-container">
-          <div id="sentence-progress-bar" class="progress-bar"></div>
-        </div>
-        <div id="sentence-progress-text" class="progress-text">0/0</div>
-
-        <div class="sentence-prompt">
-          <p class="label">Nghĩa của câu:</p>
-          <h3 id="sentence-meaning">Xin chào bạn!</h3>
+    <!-- ================= TAB 2: GHÉP CÂU ================= -->
+    <main id="builder-tab" class="tab-content">
+      
+      <!-- Màn hình 1: Thiết lập phiên -->
+      <div id="builder-setup-screen" class="card">
+        <h2>Phiên Ghép Cấu Trúc Câu</h2>
+        <div class="stats-overview">
+          <p>📚 Tổng số câu ví dụ: <strong id="builder-total-count">0</strong></p>
+          <p>✅ Đã học: <strong id="builder-learned-count">0</strong></p>
+          <p>⏳ Còn lại: <strong id="builder-remain-count">0</strong></p>
         </div>
 
-        <!-- Khung chứa từ do người dùng xếp -->
-        <div id="user-sentence-zone" class="drop-zone">
-          <!-- Từ đã chọn sẽ xuất hiện ở đây -->
+        <div class="input-group">
+          <label for="builder-session-input">Số câu muốn ghép phiên này:</label>
+          <input type="number" id="builder-session-input" value="10" min="1" max="100">
         </div>
 
-        <!-- Khung chứa các từ gợi ý -->
-        <div id="sentence-word-pool" class="word-pool">
-          <!-- Các từ chip sẽ sinh tự động ở đây -->
+        <div class="action-buttons">
+          <button class="btn btn-primary" onclick="startBuilderSession()">🔥 Bắt đầu ghép câu</button>
+          <button id="builder-wrong-btn" class="btn btn-warning" style="display: none;" onclick="startBuilderWrongReview()">
+            ⚠️ Ôn câu sai (<span id="builder-wrong-count">0</span>)
+          </button>
         </div>
-
-        <button class="primary-btn" onclick="checkSentenceAnswer()">Check / Kiểm tra</button>
       </div>
+
+      <!-- Màn hình 2: Ghép câu -->
+      <div id="builder-quiz-screen" class="card" style="display: none;">
+        <div class="quiz-header">
+          <span id="builder-mode-badge" class="badge">Phiên ghép câu</span>
+          <span id="builder-progress-text" class="progress-text">0/0</span>
+        </div>
+
+        <div class="progress-bar-container">
+          <div id="builder-progress-bar" class="progress-bar"></div>
+        </div>
+
+        <div class="question-box">
+          <p class="question-label">Sắp xếp từ thành câu nghĩa:</p>
+          <h3 id="builder-meaning" class="meaning-display">"..."</h3>
+        </div>
+
+        <!-- Khối chứa từ đã chọn -->
+        <div id="selected-words-box" class="selected-box">
+          <p class="placeholder-text">Click vào từng từ bên dưới để ghép câu...</p>
+        </div>
+
+        <!-- Ngân hàng từ ngẫu nhiên -->
+        <div id="word-pool" class="word-pool"></div>
+
+        <div id="builder-feedback" class="feedback-msg"></div>
+
+        <div class="builder-controls">
+          <button class="btn btn-secondary" onclick="resetBuilderSelection()">🔄 Chọn lại</button>
+          <button class="btn btn-success" onclick="checkBuilderAnswer()">✅ Kiểm tra</button>
+        </div>
+
+        <div class="quiz-footer">
+          <button class="btn btn-text" onclick="skipBuilderSentence()">Bỏ qua ➔</button>
+          <button class="btn btn-secondary" onclick="showBuilderSummary()">Kết thúc hôm nay</button>
+        </div>
+      </div>
+
+      <!-- Màn hình 3: Tổng kết Ghép câu -->
+      <div id="builder-summary-screen" class="card summary-card" style="display: none;">
+        <div class="praise-box">
+          <div id="builder-badge-icon" class="badge-icon">🎉</div>
+          <h2 id="builder-praise-title">Tuyệt vời!</h2>
+          <p id="builder-praise-message">Bạn đã hoàn thành phiên ghép câu xuất sắc.</p>
+        </div>
+
+        <div class="stats-grid">
+          <div class="stat-item">
+            <span class="stat-value" id="builder-sum-done">0</span>
+            <span class="stat-label">Tổng số câu</span>
+          </div>
+          <div class="stat-item correct">
+            <span class="stat-value" id="builder-sum-correct">0</span>
+            <span class="stat-label">Đúng lần đầu</span>
+          </div>
+          <div class="stat-item wrong">
+            <span class="stat-value" id="builder-sum-wrong">0</span>
+            <span class="stat-label">Cần ôn lại</span>
+          </div>
+        </div>
+
+        <div class="summary-actions">
+          <button class="btn btn-primary" onclick="continueBuilderSession()">🔥 Học tiếp phiên nữa</button>
+          <button class="btn btn-secondary" onclick="finishBuilderSession()">☕ Nghỉ ngơi hôm nay</button>
+        </div>
+      </div>
+
     </main>
   </div>
 
