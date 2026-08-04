@@ -1,197 +1,75 @@
-<!-- 1. Nhúng thư viện tạo hiệu ứng pháo hoa -->
-<script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.5.1/dist/confetti.browser.min.js"></script>
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>HSK 1 Vocabulary & Quiz Master</title>
+  <link rel="stylesheet" href="style.css">
+  <!-- Thư viện SheetJS đọc file Excel -->
+  <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+  <!-- Thư viện Canvas Confetti bắn pháo hoa -->
+  <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.5.1/dist/confetti.browser.min.js"></script>
+</head>
+<body>
+  <div class="app-container">
+    <header>
+      <h1>🇨🇳 HSK 1 Master App</h1>
+      <button id="theme-toggle" onclick="toggleDarkMode()">🌙 Dark Mode</button>
+    </header>
 
-<!-- 2. Giao diện bài tập -->
-<div class="quiz-box">
-  <div class="quiz-header">
-    <span class="badge">💡 Bài tập ôn tập</span>
-    <h3 id="quiz-question">Đang tải câu hỏi...</h3>
+    <!-- SECTION 1: FLASHCARD -->
+    <section class="flashcard-section">
+      <div class="card-counter">
+        <span id="current-index">1</span> / <span id="total-cards">143</span>
+      </div>
+
+      <div class="flashcard-container" onclick="flipCard()">
+        <div class="flashcard" id="flashcard">
+          <!-- Mặt trước -->
+          <div class="card-face card-front">
+            <h2 id="card-hanzi">...</h2>
+            <p id="card-pinyin">...</p>
+            <span class="hint">Click để lật thẻ 🔄</span>
+          </div>
+          <!-- Mặt sau -->
+          <div class="card-face card-back">
+            <h3 id="card-meaning">...</h3>
+            <hr>
+            <p class="example-title">Ví dụ:</p>
+            <p id="card-example-cn" class="example-cn">...</p>
+            <p id="card-example-vn" class="example-vn">...</p>
+          </div>
+        </div>
+      </div>
+
+      <div class="controls">
+        <button onclick="prevCard()">⬅️ Từ trước</button>
+        <button onclick="nextCard()">Từ tiếp ➡️</button>
+      </div>
+    </section>
+
+    <hr class="divider">
+
+    <!-- SECTION 2: BÀI TẬP ÔN TẬP (QUIZ PHÁO HOA) -->
+    <section class="quiz-section">
+      <div class="quiz-box">
+        <div class="quiz-header">
+          <span class="badge">🎆 Bài Tập Ôn Tập HSK 1</span>
+          <p class="quiz-prompt">Chọn Hán tự đúng cho nghĩa tiếng Việt sau:</p>
+          <h2 id="quiz-meaning">Đang tải dữ liệu...</h2>
+        </div>
+
+        <div id="quiz-options" class="options-grid">
+          <!-- Các lựa chọn đáp án được sinh tự động bằng JS -->
+        </div>
+
+        <div class="quiz-footer">
+          <p id="quiz-feedback" class="feedback-msg"></p>
+        </div>
+      </div>
+    </section>
   </div>
 
-  <div id="quiz-options" class="options-group">
-    <!-- Các đáp án sẽ tự động load vào đây -->
-  </div>
-
-  <div class="quiz-footer">
-    <button id="btn-submit" onclick="checkAnswer()">Gửi đáp án 🚀</button>
-    <p id="quiz-feedback" class="feedback-msg"></p>
-  </div>
-</div>
-
-<!-- 3. CSS Tùy chỉnh (Đẹp, hiện đại) -->
-<style>
-  .quiz-box {
-    background: #161b22;
-    border: 1px solid #30363d;
-    border-radius: 12px;
-    padding: 20px;
-    max-width: 500px;
-    margin: 20px auto;
-    color: #c9d1d9;
-    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.2);
-  }
-
-  .badge {
-    background: #238636;
-    color: #ffffff;
-    font-size: 12px;
-    font-weight: bold;
-    padding: 4px 8px;
-    border-radius: 20px;
-    text-transform: uppercase;
-  }
-
-  .quiz-header h3 {
-    margin-top: 10px;
-    margin-bottom: 15px;
-    font-size: 18px;
-    color: #f0f6fc;
-  }
-
-  .options-group {
-    display: flex;
-    flex-direction: column;
-    gap: 10px;
-    margin-bottom: 20px;
-  }
-
-  .option-label {
-    display: flex;
-    align-items: center;
-    padding: 10px 14px;
-    background: #21262d;
-    border: 1px solid #30363d;
-    border-radius: 8px;
-    cursor: pointer;
-    transition: all 0.2s ease;
-  }
-
-  .option-label:hover {
-    background: #30363d;
-    border-color: #8b949e;
-  }
-
-  .option-label input {
-    margin-right: 10px;
-    accent-color: #2f81f7;
-  }
-
-  #btn-submit {
-    width: 100%;
-    padding: 10px;
-    background: #238636;
-    color: #white;
-    border: none;
-    border-radius: 6px;
-    font-weight: bold;
-    font-size: 15px;
-    cursor: pointer;
-    transition: background 0.2s;
-  }
-
-  #btn-submit:hover {
-    background: #2ea043;
-  }
-
-  .feedback-msg {
-    margin-top: 12px;
-    font-weight: bold;
-    text-align: center;
-    font-size: 14px;
-  }
-</style>
-
-<!-- 4. Logic Xử lý & Bắn Pháo hoa -->
-<script>
-  // Danh sách các câu hỏi ôn tập (Bạn có thể thêm bớt tùy ý)
-  const quizData = [
-    {
-      question: "Phương thức nào trong SheetJS dùng để chuyển Worksheet thành mảng JSON?",
-      options: [
-        "XLSX.utils.sheet_to_csv",
-        "XLSX.utils.sheet_to_json",
-        "XLSX.read"
-      ],
-      correct: 1
-    },
-    {
-      question: "Để đọc file Excel từ đường dẫn tĩnh trong Node.js, bạn dùng hàm nào?",
-      options: [
-        "XLSX.readFile()",
-        "XLSX.read()",
-        "XLSX.parse()"
-      ],
-      correct: 0
-    }
-  ];
-
-  let currentQuestion = 0;
-
-  function renderQuestion() {
-    const q = quizData[currentQuestion];
-    document.getElementById('quiz-question').innerText = q.question;
-    
-    const optionsContainer = document.getElementById('quiz-options');
-    optionsContainer.innerHTML = '';
-
-    q.options.forEach((opt, index) => {
-      optionsContainer.innerHTML += `
-        <label class="option-label">
-          <input type="radio" name="quiz-opt" value="${index}">
-          <span>${opt}</span>
-        </label>
-      `;
-    });
-
-    document.getElementById('quiz-feedback').innerText = '';
-  }
-
-  function checkAnswer() {
-    const selected = document.querySelector('input[name="quiz-opt"]:checked');
-    const feedback = document.getElementById('quiz-feedback');
-
-    if (!selected) {
-      feedback.style.color = '#e3b341';
-      feedback.innerText = "⚠️ Chọn 1 đáp án đã bro!";
-      return;
-    }
-
-    const answer = parseInt(selected.value);
-    if (answer === quizData[currentQuestion].correct) {
-      feedback.style.color = '#3fb950';
-      feedback.innerText = "🎉 CHÍNH XÁC! Quá đỉnh!";
-      
-      // BẮN PHÁO HOA TUNG BỪNG 🔥
-      triggerConfetti();
-
-      // Tự động chuyển câu hỏi tiếp theo sau 2 giây (nếu còn)
-      setTimeout(() => {
-        currentQuestion = (currentQuestion + 1) % quizData.length;
-        renderQuestion();
-      }, 2000);
-
-    } else {
-      feedback.style.color = '#f85149';
-      feedback.innerText = "❌ Sai rồi! Thử lại xem sao nhé.";
-    }
-  }
-
-  // Hàm hiệu ứng pháo hoa
-  function triggerConfetti() {
-    // Pháo hoa bắn 2 bên góc dưới lên
-    confetti({
-      particleCount: 80,
-      spread: 60,
-      origin: { x: 0.2, y: 0.8 }
-    });
-    confetti({
-      particleCount: 80,
-      spread: 60,
-      origin: { x: 0.8, y: 0.8 }
-    });
-  }
-
-  // Khởi chạy câu hỏi đầu tiên
-  renderQuestion();
-</script>
+  <script src="script.js"></script>
+</body>
+</html>
