@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>HSK 1 Luyện Tập</title>
+  <title>HSK 1 Pro Learning App</title>
   <link rel="stylesheet" href="style.css">
   
   <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
@@ -12,64 +12,88 @@
 <body>
   <div class="app-container">
     <header>
-      <h1>🇨🇳 HSK 1 App Luyện Tập</h1>
+      <h1>🇨🇳 HSK 1 Master App</h1>
       <button id="theme-toggle" class="btn-theme" onclick="toggleDarkMode()">🌙 Dark Mode</button>
     </header>
 
-    <!-- THANH CHUYỂN TAB -->
+    <!-- THANH NÚT CHUYỂN TAB -->
     <nav class="tab-nav">
       <button class="tab-btn active" onclick="switchTab('tab-mc', this)">
-        ❇️ Ôn Từ Vựng
+        📚 Ôn Từ Vựng
       </button>
       <button class="tab-btn" onclick="switchTab('tab-builder', this)">
-        🧩 Sắp Xếp Câu
+        🧩 Ghép Cấu Trúc Câu
       </button>
     </nav>
 
-    <!-- TAB 1: TRẮC NGHIỆM CHỌN HÁN TỰ / PINYIN -->
+    <!-- ==================== TAB 1: ÔN TỪ VỰNG ==================== -->
     <section id="tab-mc" class="tab-content active">
       <div class="quiz-card">
-        <div class="quiz-meta">
-          <span class="progress-text" id="mc-progress">Tiến độ từ: 0/0</span>
-          <button class="btn-control" onclick="skipMcQuestion()" style="padding: 2px 8px; font-size: 11px;">Bỏ qua ⏭️</button>
+        <div class="quiz-header">
+          <span class="badge" id="mc-mode-badge">Chế độ: Toàn bộ</span>
+          <span class="progress-info" id="mc-progress-text">0/0</span>
         </div>
 
-        <p class="quiz-prompt">Chọn Hán tự đúng với nghĩa tiếng Việt dưới đây:</p>
+        <!-- Thanh tiến trình -->
+        <div class="progress-bar-container">
+          <div class="progress-bar-fill" id="mc-progress-bar"></div>
+        </div>
+
+        <p class="quiz-prompt">Chọn Hán tự/Pinyin đúng với nghĩa:</p>
         <h2 id="mc-meaning" class="quiz-meaning">"..."</h2>
 
         <div id="mc-options" class="options-list"></div>
+
         <p id="mc-feedback" class="feedback-msg"></p>
+
+        <div class="quiz-footer">
+          <button class="btn-control warning" id="mc-review-btn" onclick="toggleMcReviewMode()">
+            ⚠️ Ôn câu sai (<span id="mc-wrong-count">0</span>)
+          </button>
+          <button class="btn-control" onclick="skipMcQuestion()">Bỏ qua ⏭️</button>
+        </div>
       </div>
     </section>
 
-    <!-- TAB 2: SẮP XẾP TỪ THÀNH CÂU -->
+    <!-- ==================== TAB 2: SẮP XẾP CÂU ==================== -->
     <section id="tab-builder" class="tab-content">
       <div class="quiz-card">
-        <div class="quiz-meta">
-          <span class="progress-text" id="builder-progress">Tiến độ câu: 0/0</span>
-          <button class="btn-control" onclick="speakSample()" style="padding: 4px 10px; font-size: 12px; color: #0969da;">🔊 Nghe câu mẫu</button>
+        <div class="quiz-header">
+          <span class="badge" id="builder-mode-badge">Chế độ: Toàn bộ</span>
+          <span class="progress-info" id="builder-progress-text">0/0</span>
         </div>
 
-        <p class="quiz-prompt">Dịch nghĩa sau sang tiếng Trung bằng cách ghép từ:</p>
+        <!-- Thanh tiến trình -->
+        <div class="progress-bar-container">
+          <div class="progress-bar-fill" id="builder-progress-bar"></div>
+        </div>
+
+        <p class="quiz-prompt">Sắp xếp các từ thành câu chuẩn nghĩa:</p>
         <h2 id="builder-meaning" class="quiz-meaning">"..."</h2>
 
-        <!-- Khung chứa các từ đã chọn -->
+        <!-- Khung chứa từ m chọn -->
         <div class="sentence-builder-box" id="selected-words-box">
-          <p class="placeholder-text" id="builder-placeholder">Click vào các từ bên dưới để ghép câu...</p>
+          <p class="placeholder-text">Click vào từng từ bên dưới để ghép câu...</p>
         </div>
 
-        <!-- Khung chứa các từ bị xáo trộn để chọn -->
+        <!-- Khung từ xáo trộn -->
         <div id="word-pool" class="word-pool"></div>
 
-        <div class="quiz-footer" style="margin-top: 15px;">
-          <button class="btn-control primary" onclick="checkBuilderAnswer()" style="font-size: 15px; padding: 10px 20px;">
-            ✅ Kiểm Tra Đáp Án
+        <p id="builder-feedback" class="feedback-msg"></p>
+
+        <div class="quiz-footer main-actions">
+          <button class="btn-control primary" onclick="checkBuilderAnswer()">
+            ✅ Kiểm Tra
           </button>
           <button class="btn-control" onclick="resetBuilderSelection()">🔄 Chọn Lại</button>
           <button class="btn-control" onclick="skipBuilderSentence()">⏭️ Bỏ Qua</button>
         </div>
 
-        <p id="builder-feedback" class="feedback-msg"></p>
+        <div class="quiz-footer sub-actions">
+          <button class="btn-control warning" id="builder-review-btn" onclick="toggleBuilderReviewMode()">
+            ⚠️ Ôn câu sai (<span id="builder-wrong-count">0</span>)
+          </button>
+        </div>
       </div>
     </section>
   </div>
