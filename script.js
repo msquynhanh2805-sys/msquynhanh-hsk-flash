@@ -1,5 +1,5 @@
 /* ==========================================
-   1. BỘ TẠO ÂM THANH PIANO (ACOUSTIC PIANO SYNTH)
+   1. BỘ TẠO ÂM THANH PIANO (ACOUSTIC PIANO)
    ========================================== */
 const AudioFX = {
   ctx: null,
@@ -57,7 +57,7 @@ const AudioFX = {
       osc2.stop(now + duration);
       hammer.stop(now + 0.03);
     } catch (e) {
-      console.log("Lỗi âm thanh:", e);
+      console.log("Audio Error:", e);
     }
   },
 
@@ -80,7 +80,7 @@ const AudioFX = {
 };
 
 /* ==========================================
-   2. TRẠNG THÁI ỨNG DỤNG (STATE MANAGEMENT)
+   2. TRẠNG THÁI DỮ LIỆU (STATE MANAGEMENT)
    ========================================== */
 let rawData = [];
 let vocabDeck = [];
@@ -95,9 +95,10 @@ let sentenceErrorBank = JSON.parse(localStorage.getItem('sentenceErrorBank')) ||
 let userSelectedWords = [];
 
 /* ==========================================
-   3. KHỞI TẠO DỮ LIỆU & SỰ KIỆN NÚT BẤM
+   3. KHỞI TẠO TỰ ĐỘNG & BẮT SỰ KIỆN CLICK
    ========================================== */
 window.addEventListener('DOMContentLoaded', () => {
+  // 1. Đọc file Excel
   fetch('HSK1_flashcards.xlsx')
     .then(res => res.arrayBuffer())
     .then(buffer => {
@@ -109,32 +110,52 @@ window.addEventListener('DOMContentLoaded', () => {
       initSentenceModule();
     })
     .catch(err => console.error("Lỗi tải file Excel:", err));
+
+  // 2. Tự động nhận diện các Tab nút bấm trên trang
+  setupTabListeners();
 });
 
-// Hàm hỗ trợ các nút bấm bắt đầu / chọn lại
-function startVocabSession() {
-  AudioFX.init();
-  initVocabModule();
+// Tự động tìm và gán sự kiện cho các Tab
+function setupTabListeners() {
+  document.addEventListener('click', (e) => {
+    AudioFX.init(); // Đảm bảo bật Audio khi có tương tác
+
+    // Tìm xem người dùng có bấm vào nút tab hay không
+    const target = e.target.closest('[data-tab], .tab-btn, .tab-link, button');
+    if (!target) return;
+
+    // Chuyển Tab dựa theo thuộc tính data-tab hoặc Text của nút
+    const tabAttr = target.getAttribute('data-tab') || target.id;
+    
+    if (tabAttr && (tabAttr.includes('vocab') || tabAttr.includes('sentence') || tabAttr.includes('quiz') || tabAttr.includes('builder'))) {
+      switchTab(tabAttr);
+    }
+  });
 }
 
-function startSentenceSession() {
-  AudioFX.init();
-  initSentenceModule();
-}
-
-// Chuyển đổi giữa các Tab
-function switchTab(tabName) {
-  AudioFX.init();
-  const tabs = document.querySelectorAll('.tab-content');
-  const buttons = document.querySelectorAll('.tab-btn');
+// Hàm chuyển Tab linh hoạt
+function switchTab(tabIdentifier) {
+  const isSentence = tabIdentifier.toLowerCase().includes('sentence') || tabIdentifier.toLowerCase().includes('builder');
   
-  tabs.forEach(tab => tab.classList.remove('active'));
-  buttons.forEach(btn => btn.classList.remove('active'));
+  // Ẩn tất cả các tab
+  const allTabs = document.querySelectorAll('.tab-content, section, .module-container');
+  allTabs.forEach(tab => {
+    if (tab.id) tab.style.display = 'none';
+  });
 
-  const activeTab = document.getElementById(`${tabName}-tab`);
-  const activeBtn = document.getElementById(`btn-${tabName}`);
-  
-  if (activeTab) activeTab.classList.add('active');
+  // Hiện tab tương ứng
+  const targetVocab = document.getElementById('vocab-tab') || document.getElementById('vocab-module') || document.querySelector('.vocab-section');
+  const targetSentence = document.getElementById('sentence-tab') || document.getElementById('sentence-module') || document.querySelector('.sentence-section');
+
+  if (isSentence && targetSentence) {
+    targetSentence.style.display = 'block';
+  } else if (!isSentence && targetVocab) {
+    targetVocab.style.display = 'block';
+  }
+
+  // Active Style cho nút bấm
+  document.querySelectorAll('.tab-btn, .tab-link').forEach(btn => btn.classList.remove('active'));
+  const activeBtn = document.querySelector(`[data-tab*="${isSentence ? 'sentence' : 'vocab'}"]`) || document.getElementById(tabIdentifier);
   if (activeBtn) activeBtn.classList.add('active');
 }
 
@@ -156,8 +177,9 @@ function renderVocabCard() {
   }
 
   const currentItem = vocabDeck[currentVocabIndex];
-  const hanziElem = document.getElementById('vocab-hanzi');
-  const pinyinElem = document.getElementById('vocab-pinyin');
+  
+  const hanziElem = document.getElementById('vocab-hanzi') || document.querySelector('.hanzi-display');
+  const pinyinElem = document.getElementById('vocab-pinyin') || document.querySelector('.pinyin-display');
   
   if (hanziElem) hanziElem.innerText = currentItem.Hanzi || '';
   if (pinyinElem) pinyinElem.innerText = currentItem.Pinyin || '';
@@ -170,7 +192,7 @@ function renderVocabCard() {
     
   const options = [...wrongOptions, currentItem.Meaning].sort(() => Math.random() - 0.5);
   
-  const optionsContainer = document.getElementById('vocab-options');
+  const optionsContainer = document.getElementById('vocab-options') || document.querySelector('.options-grid');
   if (optionsContainer) {
     optionsContainer.innerHTML = '';
     options.forEach(opt => {
@@ -187,7 +209,7 @@ function renderVocabCard() {
 
 function checkVocabAnswer(selected, correct, btnElement) {
   AudioFX.init();
-  const buttons = document.querySelectorAll('#vocab-options .option-btn');
+  const buttons = document.querySelectorAll('.option-btn');
   buttons.forEach(b => b.disabled = true);
 
   if (selected === correct) {
@@ -241,16 +263,16 @@ function renderSentenceCard() {
   userSelectedWords = [];
   const currentItem = sentenceDeck[currentSentenceIndex];
   
-  const meaningElem = document.getElementById('sentence-meaning');
-  const userZone = document.getElementById('user-sentence-zone');
+  const meaningElem = document.getElementById('sentence-meaning') || document.querySelector('.sentence-meaning-display');
+  const userZone = document.getElementById('user-sentence-zone') || document.querySelector('.answer-zone');
   
   if (meaningElem) meaningElem.innerText = currentItem.SentenceMeaning || '';
   if (userZone) userZone.innerHTML = '';
   
-  const correctWords = currentItem.SentenceHanzi.split(' ');
+  const correctWords = (currentItem.SentenceHanzi || '').split(' ');
   const shuffledWords = [...correctWords].sort(() => Math.random() - 0.5);
   
-  const poolContainer = document.getElementById('sentence-word-pool');
+  const poolContainer = document.getElementById('sentence-word-pool') || document.querySelector('.word-pool');
   if (poolContainer) {
     poolContainer.innerHTML = '';
     shuffledWords.forEach((word, idx) => {
@@ -273,7 +295,7 @@ function selectWord(chipElement, word) {
   chipElement.classList.add('used');
   userSelectedWords.push({ word, chipId: chipElement.dataset.id });
   
-  const userZone = document.getElementById('user-sentence-zone');
+  const userZone = document.getElementById('user-sentence-zone') || document.querySelector('.answer-zone');
   if (userZone) {
     const selectedChip = document.createElement('div');
     selectedChip.className = 'word-chip selected';
@@ -292,7 +314,7 @@ function deselectWord(selectedChip, originalChip, word) {
 function checkSentenceAnswer() {
   AudioFX.init();
   const currentItem = sentenceDeck[currentSentenceIndex];
-  const targetSentence = currentItem.SentenceHanzi.replace(/\s+/g, '');
+  const targetSentence = (currentItem.SentenceHanzi || '').replace(/\s+/g, '');
   const userSentence = userSelectedWords.map(i => i.word).join('');
 
   if (userSentence === targetSentence) {
@@ -310,7 +332,7 @@ function checkSentenceAnswer() {
       localStorage.setItem('sentenceErrorBank', JSON.stringify(sentenceErrorBank));
     }
     
-    const userZone = document.getElementById('user-sentence-zone');
+    const userZone = document.getElementById('user-sentence-zone') || document.querySelector('.answer-zone');
     if (userZone) {
       userZone.classList.add('shake');
       setTimeout(() => userZone.classList.remove('shake'), 500);
@@ -328,8 +350,8 @@ function finishSentenceSession() {
    ========================================== */
 function updateProgress(module, current, total) {
   const percent = total > 0 ? (current / total) * 100 : 0;
-  const bar = document.getElementById(`${module}-progress-bar`);
-  const text = document.getElementById(`${module}-progress-text`);
+  const bar = document.getElementById(`${module}-progress-bar`) || document.querySelector(`.${module}-progress-bar`);
+  const text = document.getElementById(`${module}-progress-text`) || document.querySelector(`.${module}-progress-text`);
   if (bar) bar.style.width = `${percent}%`;
   if (text) text.innerText = `${current}/${total}`;
 }
@@ -358,3 +380,9 @@ function showFeedbackModal(type, accuracy) {
   if (type === 'vocab') initVocabModule();
   else initSentenceModule();
 }
+
+// Khai báo các hàm toàn cục để tương thích với mọi nút onclick trong HTML
+window.switchTab = switchTab;
+window.startVocabSession = initVocabModule;
+window.startSentenceSession = initSentenceModule;
+window.checkSentenceAnswer = checkSentenceAnswer;
