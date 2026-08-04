@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>HSK 1 Vocabulary & Quiz</title>
+  <title>HSK 1 Flashcards & Practice</title>
   <link rel="stylesheet" href="style.css">
   
   <!-- Thư viện SheetJS đọc file Excel -->
@@ -14,7 +14,7 @@
 <body>
   <div class="app-container">
     <header>
-      <h1>🇨🇳 HSK 1 Flashcards & Quiz</h1>
+      <h1>🇨🇳 HSK 1 Flashcards</h1>
       <button id="theme-toggle" class="btn-theme" onclick="toggleDarkMode()">🌙 Dark Mode</button>
     </header>
 
@@ -51,20 +51,25 @@
 
     <hr class="section-divider">
 
-    <!-- SECTION 2: BÀI TẬP ÔN TẬP & PHÁO HOA -->
+    <!-- SECTION 2: BÀI TẬP SẮP XẾP CÂU & PHÁO HOA -->
     <section class="quiz-section">
       <div class="quiz-box">
         <div class="quiz-header">
-          <span class="badge">🎆 Bài Tập Ôn Tập HSK 1</span>
-          <p class="quiz-prompt">Chọn Hán tự đúng với nghĩa tiếng Việt dưới đây:</p>
-          <h2 id="quiz-meaning" class="quiz-meaning">Đang tải câu hỏi...</h2>
+          <span class="badge">🧩 Bài Tập Sắp Xếp Câu HSK 1</span>
+          <p class="quiz-prompt">Hãy chọn các từ dưới đây để xếp thành câu đúng nghĩa với:</p>
+          <h3 id="sentence-meaning" class="quiz-meaning">Đang tải câu...</h3>
         </div>
 
-        <div id="quiz-options" class="options-grid">
-          <!-- JS sẽ tạo các nút đáp án ở đây -->
+        <div class="sentence-builder-box" id="user-sentence">
+          <span class="placeholder-text">Click chọn các từ bên dưới để ghép câu...</span>
+        </div>
+
+        <div class="word-pool" id="word-pool">
+          <!-- Các thẻ từ sẽ tự render ở đây -->
         </div>
 
         <div class="quiz-footer">
+          <button class="btn-reset" onclick="resetSentence()">🔄 Làm lại câu này</button>
           <p id="quiz-feedback" class="feedback-msg"></p>
         </div>
       </div>
