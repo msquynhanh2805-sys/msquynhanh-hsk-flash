@@ -1,5 +1,108 @@
 let hskData = [];
 
+/* ==========================================
+   BỘ TẠO ÂM THANH (WEB AUDIO API - NATIVE)
+   ========================================== */
+const AudioFX = {
+  ctx: null,
+  init() {
+    if (!this.ctx) {
+      this.ctx = new (window.AudioContext || window.webkitAudioContext)();
+    }
+  },
+  // Âm thanh khi trả lời ĐÚNG (Ting vui tươi)
+  playCorrect() {
+    this.init();
+    const now = this.ctx.currentTime;
+    const osc = this.ctx.createOscillator();
+    const gain = this.ctx.createGain();
+
+    osc.type = 'sine';
+    osc.frequency.setValueAtTime(523.25, now); // Nốt C5
+    osc.frequency.exponentialRampToValueAtTime(880, now + 0.15); // Nốt A5
+
+    gain.gain.setValueAtTime(0.3, now);
+    gain.gain.exponentialRampToValueAtTime(0.01, now + 0.3);
+
+    osc.connect(gain);
+    gain.connect(this.ctx.destination);
+
+    osc.start(now);
+    osc.stop(now + 0.3);
+  },
+  // Âm thanh khi trả lời SAI (Trầm nhẹ)
+  playWrong() {
+    this.init();
+    const now = this.ctx.currentTime;
+    const osc = this.ctx.createOscillator();
+    const gain = this.ctx.createGain();
+
+    osc.type = 'triangle';
+    osc.frequency.setValueAtTime(180, now);
+    osc.frequency.setValueAtTime(110, now + 0.1);
+
+    gain.gain.setValueAtTime(0.3, now);
+    gain.gain.exponentialRampToValueAtTime(0.01, now + 0.25);
+
+    osc.connect(gain);
+    gain.connect(this.ctx.destination);
+
+    osc.start(now);
+    osc.stop(now + 0.25);
+  },
+  // Âm thanh PHÁO HOA TỔNG KẾT (Chuỗi âm mừng chiến thắng)
+  playCelebration() {
+    this.init();
+    const notes = [523.25, 659.25, 783.99, 1046.50]; // C5, E5, G5, C6
+    notes.forEach((freq, index) => {
+      setTimeout(() => {
+        const now = this.ctx.currentTime;
+        const osc = this.ctx.createOscillator();
+        const gain = this.ctx.createGain();
+
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(freq, now);
+
+        gain.gain.setValueAtTime(0.3, now);
+        gain.gain.exponentialRampToValueAtTime(0.01, now + 0.3);
+
+        osc.connect(gain);
+        gain.connect(this.ctx.destination);
+
+        osc.start(now);
+        osc.stop(now + 0.3);
+      }, index * 120);
+    });
+  }
+};
+
+/* ==========================================
+   BỘ LỜI KHEN THÔNG MINH
+   ========================================== */
+const PraiseData = {
+  high: [
+    { title: "Bậc Thầy HSK 1! 🏆", msg: "Phong độ đỉnh cao! Cứ giữ đà này thì thi HSK 1 chỉ là chuyện nhỏ.", icon: "👑" },
+    { title: "Xuất Sắc Vượt Trội! 🎉", msg: "Trí nhớ siêu đỉnh! Học viên xuất sắc nhất hôm nay chính là bạn.", icon: "🌟" }
+  ],
+  medium: [
+    { title: "Nỗ Lực Rất Tốt! 💪", msg: "Tiến bộ rõ rệt qua từng phiên học. Cố gắng phát huy nhé!", icon: "🚀" },
+    { title: "Làm Tốt Lắm! 👍", msg: "Chỉ cần ôn nhẹ lại vài câu chưa đúng là thuộc làu làu ngay.", icon: "⚡" }
+  ],
+  low: [
+    { title: "Chiến Binh Kiên Trì! 🛡️", msg: "Vạn sự khởi đầu nan. Đừng lo lắng, sai đâu mình sửa đó nha!", icon: "🌱" },
+    { title: "Không Sao Cả, Cố Lên! ❤️", msg: "Mỗi câu sai là một cơ hội để nhớ lâu hơn. Ôn lại kho câu sai nhé!", icon: "☀️" }
+  ]
+};
+
+function getRandomPraise(accuracyRatio) {
+  let list = PraiseData.low;
+  if (accuracyRatio >= 0.8) list = PraiseData.high;
+  else if (accuracyRatio >= 0.5) list = PraiseData.medium;
+
+  return list[Math.floor(Math.random() * list.length)];
+}
+
+/* KỞI TẠO VÀ ĐỌC EXCEL */
 window.addEventListener('DOMContentLoaded', () => {
   fetch('HSK1_flashcards.xlsx')
     .then(res => res.arrayBuffer())
@@ -33,7 +136,7 @@ function switchTab(tabId, btnElement) {
 }
 
 /* ==========================================
-   TAB 1: TRẮC NGHIỆM TỪ VỰNG (CUSTOM SESSION)
+   TAB 1: TRẮC NGHIỆM TỪ VỰNG
    ========================================== */
 let mcList = [];
 let mcGlobalIndex = 0;
@@ -43,6 +146,7 @@ let mcCorrectFirstTry = 0;
 let mcWrongList = JSON.parse(localStorage.getItem('hsk1_mc_wrong') || '[]');
 let isMcWrongMode = false;
 let currentMcItem = null;
+let mcHadWrongInCurrent = false;
 
 function initMultipleChoiceApp() {
   const savedOrder = localStorage.getItem('hsk1_mc_order');
@@ -88,7 +192,7 @@ function startMcSession() {
 
   mcSessionList = mcList.slice(mcGlobalIndex, mcGlobalIndex + countInput);
   if (mcSessionList.length === 0) {
-    alert("Bạn đã hoàn thành toàn bộ kho từ vựng! Hệ thống sẽ reset lại từ đầu.");
+    alert("Bạn đã học hết toàn bộ từ vựng! Hệ thống sẽ xoay vòng lại từ đầu.");
     mcGlobalIndex = 0;
     localStorage.setItem('hsk1_mc_index', 0);
     mcSessionList = mcList.slice(0, countInput);
@@ -158,12 +262,11 @@ function loadMcQuestion() {
   });
 }
 
-let mcHadWrongInCurrent = false;
-
 function checkMultipleChoice(selected) {
   const feedback = document.getElementById('mc-feedback');
 
   if (selected.hanzi === currentMcItem.hanzi) {
+    AudioFX.playCorrect(); // 🔊 Âm thanh đúng
     feedback.style.color = '#1f883d';
     feedback.innerText = '🎉 Chính xác!';
     if (typeof confetti === 'function') confetti({ particleCount: 60, spread: 50, origin: { y: 0.4 } });
@@ -186,6 +289,7 @@ function checkMultipleChoice(selected) {
     }, 1000);
 
   } else {
+    AudioFX.playWrong(); // 🔊 Âm thanh sai
     feedback.style.color = '#d1242f';
     feedback.innerText = '❌ Chưa đúng, thử lại nhé!';
     mcHadWrongInCurrent = true;
@@ -211,23 +315,30 @@ function showMcSummary() {
   document.getElementById('mc-quiz-screen').style.display = 'none';
   document.getElementById('mc-summary-screen').style.display = 'block';
 
-  document.getElementById('mc-sum-done').innerText = mcSessionList.length;
-  document.getElementById('mc-sum-correct').innerText = mcCorrectFirstTry;
-  document.getElementById('mc-sum-wrong').innerText = mcSessionList.length - mcCorrectFirstTry;
+  const total = mcSessionList.length;
+  const correct = mcCorrectFirstTry;
+  const accuracy = total > 0 ? correct / total : 0;
 
+  document.getElementById('mc-sum-done').innerText = total;
+  document.getElementById('mc-sum-correct').innerText = correct;
+  document.getElementById('mc-sum-wrong').innerText = total - correct;
+
+  // Lời khen
+  const praise = getRandomPraise(accuracy);
+  document.getElementById('mc-praise-title').innerText = praise.title;
+  document.getElementById('mc-praise-message').innerText = praise.msg;
+  document.getElementById('mc-badge-icon').innerText = praise.icon;
+
+  AudioFX.playCelebration(); // 🔊 Âm pháo hoa
   if (typeof confetti === 'function') confetti({ particleCount: 100, spread: 70, origin: { y: 0.5 } });
 }
 
-function continueMcSession() {
-  updateMcSetupUI();
-}
+function continueMcSession() { updateMcSetupUI(); }
+function finishMcSession() { updateMcSetupUI(); }
 
-function finishMcSession() {
-  updateMcSetupUI();
-}
 
 /* ==========================================
-   TAB 2: SẮP XẾP CÂU (CUSTOM SESSION)
+   TAB 2: SẮP XẾP CÂU
    ========================================== */
 let builderList = [];
 let builderGlobalIndex = 0;
@@ -238,6 +349,7 @@ let builderWrongList = JSON.parse(localStorage.getItem('hsk1_builder_wrong') || 
 let isBuilderWrongMode = false;
 let currentCorrectWords = [];
 let userSelectedPool = [];
+let builderHadWrongInCurrent = false;
 
 function initBuilderApp() {
   const validItems = hskData.filter(item => item.examplePinyin && item.exampleVn);
@@ -285,7 +397,7 @@ function startBuilderSession() {
 
   builderSessionList = builderList.slice(builderGlobalIndex, builderGlobalIndex + countInput);
   if (builderSessionList.length === 0) {
-    alert("Bạn đã ghép hết kho câu ví dụ! Hệ thống sẽ reset lại từ đầu.");
+    alert("Bạn đã ghép hết kho câu ví dụ! Hệ thống sẽ xoay vòng lại.");
     builderGlobalIndex = 0;
     localStorage.setItem('hsk1_builder_index', 0);
     builderSessionList = builderList.slice(0, countInput);
@@ -386,8 +498,6 @@ function resetBuilderSelection() {
   loadBuilderQuestion();
 }
 
-let builderHadWrongInCurrent = false;
-
 function checkBuilderAnswer() {
   const feedback = document.getElementById('builder-feedback');
   const userResult = userSelectedPool.map(w => w.text).join(' ');
@@ -402,6 +512,7 @@ function checkBuilderAnswer() {
   const currentItem = builderSessionList[builderSessionIndex];
 
   if (userResult.toLowerCase() === correctResult.toLowerCase()) {
+    AudioFX.playCorrect(); // 🔊 Âm thanh đúng
     feedback.style.color = '#1f883d';
     feedback.innerText = `🎉 Chuẩn đét! Đáp án: "${correctResult}"`;
     if (typeof confetti === 'function') confetti({ particleCount: 70, spread: 60, origin: { y: 0.8 } });
@@ -424,6 +535,7 @@ function checkBuilderAnswer() {
     }, 1200);
 
   } else {
+    AudioFX.playWrong(); // 🔊 Âm thanh sai
     feedback.style.color = '#d1242f';
     feedback.innerText = `❌ Sai thứ tự từ rồi, thử lại nhé!`;
     builderHadWrongInCurrent = true;
@@ -449,22 +561,27 @@ function showBuilderSummary() {
   document.getElementById('builder-quiz-screen').style.display = 'none';
   document.getElementById('builder-summary-screen').style.display = 'block';
 
-  document.getElementById('builder-sum-done').innerText = builderSessionList.length;
-  document.getElementById('builder-sum-correct').innerText = builderCorrectFirstTry;
-  document.getElementById('builder-sum-wrong').innerText = builderSessionList.length - builderCorrectFirstTry;
+  const total = builderSessionList.length;
+  const correct = builderCorrectFirstTry;
+  const accuracy = total > 0 ? correct / total : 0;
 
+  document.getElementById('builder-sum-done').innerText = total;
+  document.getElementById('builder-sum-correct').innerText = correct;
+  document.getElementById('builder-sum-wrong').innerText = total - correct;
+
+  const praise = getRandomPraise(accuracy);
+  document.getElementById('builder-praise-title').innerText = praise.title;
+  document.getElementById('builder-praise-message').innerText = praise.msg;
+  document.getElementById('builder-badge-icon').innerText = praise.icon;
+
+  AudioFX.playCelebration(); // 🔊 Âm pháo hoa
   if (typeof confetti === 'function') confetti({ particleCount: 100, spread: 70, origin: { y: 0.5 } });
 }
 
-function continueBuilderSession() {
-  updateBuilderSetupUI();
-}
+function continueBuilderSession() { updateBuilderSetupUI(); }
+function finishBuilderSession() { updateBuilderSetupUI(); }
 
-function finishBuilderSession() {
-  updateBuilderSetupUI();
-}
-
-/* Dark Mode */
+/* Dark Mode Toggle */
 function toggleDarkMode() {
   document.body.classList.toggle('dark-mode');
 }
