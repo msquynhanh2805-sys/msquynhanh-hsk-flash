@@ -1,1 +1,42 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>HSK Flashcards</title>
 
+    <link rel="stylesheet" href="style.css">
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+</head>
+
+<body>
+
+<div class="container">
+
+    <h1>📖 HSK Flashcards</h1>
+
+    <div class="progress">
+        <div id="progressBar"></div>
+    </div>
+
+    <p id="progressText">0 / 0</p>
+
+    <div id="card" class="card">
+        <div id="front" class="front">Đang tải...</div>
+        <div id="back" class="back"></div>
+    </div>
+
+    <button id="flipBtn">🔄 Lật thẻ</button>
+
+    <div class="buttons">
+        <button id="knowBtn">✅ Đã nhớ</button>
+        <button id="dontKnowBtn">❌ Chưa nhớ</button>
+    </div>
+
+</div>
+
+<script src="script.js"></script>
+
+</body>
+</html>
