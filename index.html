@@ -7,6 +7,7 @@
 
     <link rel="stylesheet" href="style.css">
 
+    <!-- Đọc Excel -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 </head>
 
@@ -14,7 +15,7 @@
 
 <div class="container">
 
-    <h1>📖 HSK Flashcards</h1>
+    <h1>📚 HSK Flashcards</h1>
 
     <div class="progress">
         <div id="progressBar"></div>
@@ -22,16 +23,54 @@
 
     <p id="progressText">0 / 0</p>
 
-    <div id="card" class="card">
-        <div id="front" class="front">Đang tải...</div>
-        <div id="back" class="back"></div>
+    <div class="card" id="card">
+
+        <div class="card-inner" id="cardInner">
+
+            <div class="card-front">
+
+                <div id="hanzi" class="hanzi">
+                    Đang tải...
+                </div>
+
+            </div>
+
+            <div class="card-back">
+
+                <h2 id="pinyin"></h2>
+
+                <h3 id="meaning"></h3>
+
+                <div class="example">
+
+                    <p id="exampleVN"></p>
+
+                    <hr>
+
+                    <p id="examplePY"></p>
+
+                </div>
+
+            </div>
+
+        </div>
+
     </div>
 
-    <button id="flipBtn">🔄 Lật thẻ</button>
+    <button id="flipBtn">
+        🔄 Lật thẻ
+    </button>
 
     <div class="buttons">
-        <button id="knowBtn">✅ Đã nhớ</button>
-        <button id="dontKnowBtn">❌ Chưa nhớ</button>
+
+        <button id="dontKnowBtn">
+            ❌ Chưa nhớ
+        </button>
+
+        <button id="knowBtn">
+            ✅ Đã nhớ
+        </button>
+
     </div>
 
 </div>
