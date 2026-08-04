@@ -16,290 +16,191 @@ body {
 
 .app-container {
   width: 100%;
-  max-width: 600px;
+  max-width: 650px;
 }
 
 header {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 20px;
+  margin-bottom: 24px;
 }
 
 header h1 {
-  font-size: 20px;
+  font-size: 22px;
 }
 
 .btn-theme {
-  padding: 6px 12px;
+  padding: 6px 14px;
   border-radius: 6px;
   border: 1px solid #d0d7de;
   background: #ffffff;
   cursor: pointer;
+  font-weight: 500;
 }
 
-/* --- FLASHCARD STYLES --- */
-.flashcard-section {
-  text-align: center;
-}
-
-.card-counter {
-  font-weight: bold;
-  margin-bottom: 12px;
-  color: #57606a;
-}
-
-.flashcard-container {
-  perspective: 1000px;
-  margin: 0 auto 20px auto;
-  cursor: pointer;
-}
-
-.flashcard {
-  width: 100%;
-  height: 260px;
-  position: relative;
-  transform-style: preserve-3d;
-  transition: transform 0.6s cubic-bezier(0.4, 0.2, 0.2, 1);
-  border-radius: 16px;
-  box-shadow: 0 8px 24px rgba(140, 149, 159, 0.2);
-}
-
-.flashcard.flipped {
-  transform: rotateY(180deg);
-}
-
-.card-face {
-  position: absolute;
-  width: 100%;
-  height: 100%;
-  backface-visibility: hidden;
-  border-radius: 16px;
-  padding: 24px;
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
-  align-items: center;
-  background: #ffffff;
-  border: 1px solid #d0d7de;
-}
-
-.card-front #card-hanzi {
-  font-size: 48px;
-  color: #0969da;
-  margin-bottom: 8px;
-}
-
-.card-front #card-pinyin {
-  font-size: 20px;
-  color: #57606a;
-}
-
-.card-front .hint {
-  position: absolute;
-  bottom: 12px;
-  font-size: 12px;
-  color: #8c959f;
-}
-
-.card-back {
-  transform: rotateY(180deg);
-  background: #f8f9fa;
-}
-
-.card-back #card-meaning {
-  font-size: 24px;
-  color: #1a7f37;
-  margin-bottom: 8px;
-}
-
-.card-divider {
-  width: 80%;
-  border: 0;
-  border-top: 1px dashed #d0d7de;
-  margin: 10px 0;
-}
-
-.example-title {
-  font-size: 12px;
-  color: #57606a;
-  font-weight: bold;
-}
-
-.example-cn {
-  font-size: 16px;
-  font-weight: bold;
-  margin-top: 4px;
-}
-
-.example-vn {
-  font-size: 14px;
-  color: #57606a;
-}
-
-.controls {
-  display: flex;
-  gap: 12px;
-  justify-content: center;
-}
-
-.btn-nav {
-  padding: 10px 20px;
-  border-radius: 8px;
-  border: 1px solid #d0d7de;
-  background: #ffffff;
-  font-weight: bold;
-  cursor: pointer;
-  transition: all 0.2s;
-}
-
-.btn-nav:hover {
-  background: #f3f4f6;
-}
-
-/* --- QUIZ & SENTENCE STYLES --- */
 .section-divider {
-  margin: 36px 0;
+  margin: 32px 0;
   border: 0;
-  border-top: 2px solid #e1e4e8;
+  border-top: 2px dashed #d0d7de;
 }
 
-.quiz-box {
+/* --- QUIZ CARD STYLES --- */
+.quiz-card {
   background: #ffffff;
-  border: 1px solid #d0d7de;
+  border: 1px solid #e1e4e8;
   border-radius: 16px;
   padding: 24px;
   text-align: center;
-  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.05);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.03);
+  position: relative;
+  overflow: hidden;
+}
+
+.badge-wrapper {
+  margin-bottom: 12px;
 }
 
 .badge {
-  background: #1f883d;
-  color: #ffffff;
-  padding: 4px 12px;
+  padding: 6px 16px;
   border-radius: 20px;
-  font-size: 12px;
+  font-size: 13px;
   font-weight: bold;
+  display: inline-block;
+}
+
+.badge.green { background: #1f883d; color: #ffffff; }
+.badge.blue { background: #0969da; color: #ffffff; }
+
+/* THANH ĐẾM NGƯỢC ⏱️ */
+.timer-container {
+  width: 100%;
+  height: 6px;
+  background: #e1e4e8;
+  border-radius: 3px;
+  margin-bottom: 16px;
+  overflow: hidden;
+}
+
+.timer-bar {
+  height: 100%;
+  width: 100%;
+  background: #2da44e;
+  transition: width 0.1s linear, background-color 0.3s;
 }
 
 .quiz-prompt {
   color: #57606a;
-  font-size: 13px;
-  margin-top: 12px;
+  font-size: 14px;
+  margin-bottom: 8px;
 }
 
 .quiz-meaning {
   color: #9a6700;
-  font-size: 20px;
-  margin: 10px 0 20px 0;
+  font-size: 24px;
+  font-weight: bold;
+  margin-bottom: 20px;
 }
 
+/* DẠNG 1: TRẮC NGHIỆM */
+.options-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.option-btn {
+  background: #f6f8fa;
+  border: 1px solid #d0d7de;
+  border-radius: 12px;
+  padding: 14px 20px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  width: 100%;
+}
+
+.option-btn:hover {
+  border-color: #0969da;
+  background: #ffffff;
+  box-shadow: 0 2px 8px rgba(9, 105, 218, 0.15);
+}
+
+.option-hanzi { font-size: 22px; font-weight: bold; color: #24292f; }
+.option-pinyin { font-size: 16px; color: #57606a; }
+
+/* DẠNG 2: SẮP XẾP CÂU PINYIN */
 .sentence-builder-box {
-  min-height: 55px;
+  min-height: 60px;
   background: #f8f9fa;
   border: 2px dashed #0969da;
-  border-radius: 10px;
+  border-radius: 12px;
   padding: 10px;
   display: flex;
   flex-wrap: wrap;
   gap: 8px;
   align-items: center;
   justify-content: center;
-  margin-bottom: 15px;
+  margin-bottom: 20px;
 }
 
-.placeholder-text {
-  color: #8c959f;
-  font-size: 13px;
-}
+.placeholder-text { color: #8c959f; font-size: 13px; }
 
 .word-pool {
   display: flex;
   flex-wrap: wrap;
   gap: 10px;
   justify-content: center;
-  margin-bottom: 15px;
+  margin-bottom: 16px;
 }
 
 .word-chip {
   background: #ffffff;
   border: 1px solid #d0d7de;
   border-radius: 8px;
-  padding: 8px 14px;
+  padding: 8px 16px;
   font-size: 18px;
-  font-weight: bold;
+  font-weight: 600;
   color: #0969da;
   cursor: pointer;
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
-  transition: all 0.2s;
+  transition: all 0.15s;
 }
 
 .word-chip:hover {
   background: #0969da;
   color: #ffffff;
-  transform: translateY(-2px);
 }
 
 .btn-reset {
   background: transparent;
   border: 1px solid #d0d7de;
-  padding: 6px 12px;
+  padding: 8px 16px;
   border-radius: 6px;
   cursor: pointer;
   font-size: 13px;
-  color: #57606a;
+  font-weight: bold;
+  color: #24292f;
 }
 
 .feedback-msg {
-  margin-top: 16px;
+  margin-top: 14px;
   font-weight: bold;
   font-size: 15px;
   min-height: 22px;
 }
 
-/* --- DARK MODE --- */
-body.dark-mode {
-  background-color: #0d1117;
-  color: #c9d1d9;
-}
-
-body.dark-mode .card-face,
-body.dark-mode .quiz-box,
-body.dark-mode .btn-theme,
-body.dark-mode .btn-nav {
-  background-color: #161b22;
-  border-color: #30363d;
-  color: #c9d1d9;
-}
-
-body.dark-mode .card-back {
-  background-color: #1c2128;
-}
-
-body.dark-mode .card-front #card-hanzi {
-  color: #58a6ff;
-}
-
-body.dark-mode .card-back #card-meaning {
-  color: #3fb950;
-}
-
-body.dark-mode .quiz-meaning {
-  color: #f2cc60;
-}
-
-body.dark-mode .sentence-builder-box {
-  background: #0d1117;
-  border-color: #58a6ff;
-}
-
-body.dark-mode .word-chip {
-  background: #21262d;
-  border-color: #30363d;
-  color: #58a6ff;
-}
-
-body.dark-mode .word-chip:hover {
-  background: #1f6beb;
-  color: #ffffff;
-}
+/* DARK MODE */
+body.dark-mode { background-color: #0d1117; color: #c9d1d9; }
+body.dark-mode .quiz-card, body.dark-mode .btn-theme { background-color: #161b22; border-color: #30363d; color: #c9d1d9; }
+body.dark-mode .quiz-meaning { color: #f2cc60; }
+body.dark-mode .option-btn { background: #21262d; border-color: #30363d; }
+body.dark-mode .option-btn:hover { background: #262c36; border-color: #58a6ff; }
+body.dark-mode .option-hanzi { color: #ffffff; }
+body.dark-mode .option-pinyin { color: #8b949e; }
+body.dark-mode .sentence-builder-box { background: #0d1117; border-color: #58a6ff; }
+body.dark-mode .word-chip { background: #21262d; border-color: #30363d; color: #58a6ff; }
+body.dark-mode .word-chip:hover { background: #1f6beb; color: #ffffff; }
+body.dark-mode .timer-container { background: #30363d; }
