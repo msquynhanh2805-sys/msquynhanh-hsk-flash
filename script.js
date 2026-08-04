@@ -117,7 +117,7 @@ function skipMcQuestion() {
 }
 
 /* ==========================================
-   DẠNG 2: LUYỆN NÓI CÂU BẰNG MICRO (ẨN PINYIN)
+   DẠNG 2: LUYỆN NÓI CÂU (CHE PINYIN HÒAN TOÀN)
    ========================================== */
 let speakingList = [];
 let currentSpeakingIndex = 0;
@@ -155,9 +155,9 @@ function loadSpeakingQuestion() {
   
   currentTargetPinyin = item.examplePinyin.replace(/[。!？,.]/g, '').trim();
   
-  // Ẩn Pinyin ban đầu
+  // CHE PINYIN HOÀN TOÀN
   const pinyinHintElement = document.getElementById('speaking-pinyin-hint');
-  pinyinHintElement.innerText = "❓ 🔒 (Nói xong để mở)";
+  pinyinHintElement.innerText = "🙈 * * * * * * *";
   pinyinHintElement.style.color = "#8c959f";
 }
 
@@ -204,7 +204,7 @@ function startListening() {
 function checkSpeakingAnswer(spokenText) {
   const feedback = document.getElementById('speaking-feedback');
 
-  // Mở Pinyin đáp án ngay khi nói xong
+  // HIỂN THỊ PINYIN ĐÁP ÁN KHI NÓI XONG
   showPinyinHint();
 
   if (spokenText && spokenText.length > 0) {
@@ -221,20 +221,28 @@ function checkSpeakingAnswer(spokenText) {
   }
 }
 
-// Giọng đọc chuẩn bằng Google Audio API
+// PHÁT ÂM CHUẨN GIỌNG NÓI TIẾNG TRUNG
 function speakSample() {
   const item = speakingList[currentSpeakingIndex];
   if (!item || !item.examplePinyin) return;
 
-  const textToSpeak = encodeURIComponent(item.examplePinyin);
-  const audioUrl = `https://translate.google.com/translate_tts?ie=UTF-8&q=${textToSpeak}&tl=zh-CN&client=tw-ob`;
-
-  const audio = new Audio(audioUrl);
-  audio.play().catch(() => {
-    const utterance = new SpeechSynthesisUtterance(item.examplePinyin);
+  // Lấy thẳng Hán tự hoặc Pinyin phát âm qua SpeechSynthesis giọng chuẩn zh-CN
+  if ('speechSynthesis' in window) {
+    window.speechSynthesis.cancel();
+    
+    // Ưu tiên đọc câu Hán tự nếu có, không có thì đọc Pinyin
+    const text = item.hanziExample || item.examplePinyin; 
+    const utterance = new SpeechSynthesisUtterance(text);
     utterance.lang = 'zh-CN';
+    utterance.rate = 0.85; // Tốc độ chuẩn cho người học
+
+    // Chọn giọng tiếng Trung chuẩn của trình duyệt
+    const voices = window.speechSynthesis.getVoices();
+    const zhVoice = voices.find(v => v.lang.includes('zh') || v.lang.includes('CN'));
+    if (zhVoice) utterance.voice = zhVoice;
+
     window.speechSynthesis.speak(utterance);
-  });
+  }
 }
 
 function skipSpeakingSentence() {
