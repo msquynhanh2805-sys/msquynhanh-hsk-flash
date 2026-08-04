@@ -1,166 +1,130 @@
-*{
-    margin:0;
-    padding:0;
-    box-sizing:border-box;
-}
+let cards = [];
+let current = 0;
 
-body{
-    font-family:Arial,Helvetica,sans-serif;
-    background:linear-gradient(135deg,#dbeafe,#eff6ff);
-    min-height:100vh;
-    display:flex;
-    justify-content:center;
-    align-items:center;
-    padding:20px;
-}
+const STORAGE_KEY = "hsk_flashcards_progress";
 
-.container{
-    width:100%;
-    max-width:500px;
-    text-align:center;
-}
+const card = document.getElementById("card");
+const progressBar = document.getElementById("progressBar");
+const progressText = document.getElementById("progressText");
 
-h1{
-    color:#1e3a8a;
-    margin-bottom:20px;
-}
+const hanzi = document.getElementById("hanzi");
+const pinyin = document.getElementById("pinyin");
+const meaning = document.getElementById("meaning");
+const exampleVN = document.getElementById("exampleVN");
+const examplePY = document.getElementById("examplePY");
 
-.progress{
-    width:100%;
-    height:12px;
-    background:#d1d5db;
-    border-radius:20px;
-    overflow:hidden;
-    margin-bottom:10px;
-}
+// Đọc file Excel ở cùng thư mục với index.html
+fetch("HSK1_flashcards.xlsx")
+.then(res => {
+    if (!res.ok) throw new Error("Không tìm thấy file Excel");
+    return res.arrayBuffer();
+})
+.then(buffer => {
 
-#progressBar{
-    width:0%;
-    height:100%;
-    background:#2563eb;
-    transition:.3s;
-}
+    const workbook = XLSX.read(buffer);
 
-#progressText{
-    margin-bottom:20px;
-    color:#555;
-}
+    const sheet = workbook.Sheets[workbook.SheetNames[0]];
 
-.card{
-    width:100%;
-    height:380px;
-    perspective:1000px;
-    margin-bottom:20px;
-}
+    cards = XLSX.utils.sheet_to_json(sheet);
 
-.card-inner{
-    position:relative;
-    width:100%;
-    height:100%;
-    transition:transform .6s;
-    transform-style:preserve-3d;
-}
+    loadProgress();
 
-.card.flipped .card-inner{
-    transform:rotateY(180deg);
-}
+    showCard();
 
-.card-front,
-.card-back{
-    position:absolute;
-    width:100%;
-    height:100%;
-    background:white;
-    border-radius:20px;
-    box-shadow:0 10px 25px rgba(0,0,0,.15);
-    backface-visibility:hidden;
-    display:flex;
-    flex-direction:column;
-    justify-content:center;
-    align-items:center;
-    padding:25px;
-}
+})
+.catch(err=>{
+    alert("Không đọc được file Excel. Hãy kiểm tra tên file là HSK1_flashcards.xlsx");
+    console.error(err);
+});
 
-.card-back{
-    transform:rotateY(180deg);
-}
+function showCard(){
 
-.hanzi{
-    font-size:60px;
-    font-weight:bold;
-    color:#111827;
-}
+    if(cards.length===0) return;
 
-#pinyin{
-    color:#2563eb;
-    margin-bottom:10px;
-}
+    if(current>=cards.length){
 
-#meaning{
-    color:#16a34a;
-    margin-bottom:20px;
-}
+        alert("🎉 Chúc mừng! Bạn đã học xong.");
 
-.example{
-    width:100%;
-    text-align:left;
-    line-height:1.8;
-    font-size:18px;
-}
+        localStorage.removeItem(STORAGE_KEY);
 
-.example hr{
-    margin:15px 0;
-}
+        current=0;
 
-button{
-    border:none;
-    border-radius:12px;
-    padding:14px 22px;
-    font-size:16px;
-    cursor:pointer;
-    transition:.2s;
-}
-
-button:hover{
-    transform:translateY(-2px);
-}
-
-#flipBtn{
-    width:100%;
-    background:#2563eb;
-    color:white;
-    margin-bottom:15px;
-}
-
-.buttons{
-    display:flex;
-    gap:10px;
-}
-
-#knowBtn{
-    flex:1;
-    background:#22c55e;
-    color:white;
-}
-
-#dontKnowBtn{
-    flex:1;
-    background:#ef4444;
-    color:white;
-}
-
-@media(max-width:600px){
-
-    .card{
-        height:330px;
     }
 
-    .hanzi{
-        font-size:50px;
-    }
+    let c=cards[current];
 
-    .example{
-        font-size:16px;
+    hanzi.textContent=c["Hanzi"]||"";
+
+    pinyin.textContent=c["Pinyin"]||"";
+
+    meaning.textContent=c["Nghĩa"]||"";
+
+    exampleVN.textContent=c["Ví dụ VN"]||"";
+
+    examplePY.textContent=c["Ví dụ pinyin"]||"";
+
+    card.classList.remove("flipped");
+
+    updateProgress();
+
+}
+
+function updateProgress(){
+
+    progressBar.style.width=((current+1)/cards.length*100)+"%";
+
+    progressText.innerHTML=(current+1)+" / "+cards.length;
+
+}
+
+document.getElementById("flipBtn").onclick=()=>{
+
+    card.classList.toggle("flipped");
+
+}
+
+card.onclick=()=>{
+
+    card.classList.toggle("flipped");
+
+}
+
+document.getElementById("knowBtn").onclick=()=>{
+
+    current++;
+
+    saveProgress();
+
+    showCard();
+
+}
+
+document.getElementById("dontKnowBtn").onclick=()=>{
+
+    cards.push(cards[current]);
+
+    current++;
+
+    saveProgress();
+
+    showCard();
+
+}
+
+function saveProgress(){
+
+    localStorage.setItem(STORAGE_KEY,current);
+
+}
+
+function loadProgress(){
+
+    const saved=localStorage.getItem(STORAGE_KEY);
+
+    if(saved){
+
+        current=parseInt(saved);
+
     }
 
 }
