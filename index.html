@@ -1,144 +1,197 @@
-<!DOCTYPE html>
-<html lang="vi">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>HSK Flashcard Learner</title>
-    <!-- Font Inter & Noto Sans SC cho tiếng Trung -->
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Noto+Sans+SC:wght@400;500;700&display=swap" rel="stylesheet">
-    <!-- FontAwesome Icons -->
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <!-- Style CSS -->
-    <link rel="stylesheet" href="style.css">
-    <!-- SheetJS (XLSX Engine) -->
-    <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
-</head>
-<body>
-    <div class="app-container">
-        <!-- Header & Top Bar -->
-        <header class="app-header">
-            <div class="logo">
-                <i class="fa-solid fa-graduation-cap"></i>
-                <span>HSK Flashcard</span>
-            </div>
-            <div class="header-actions">
-                <button id="theme-toggle" class="icon-btn" title="Đổi chế độ sáng/tối">
-                    <i class="fa-solid fa-moon"></i>
-                </button>
-            </div>
-        </header>
+<!-- 1. Nhúng thư viện tạo hiệu ứng pháo hoa -->
+<script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.5.1/dist/confetti.browser.min.js"></script>
 
-        <!-- Dashboard Statistics -->
-        <section class="stats-dashboard">
-            <div class="stat-card">
-                <div class="stat-icon total"><i class="fa-solid fa-layer-group"></i></div>
-                <div class="stat-info">
-                    <span class="stat-value" id="stat-total">0</span>
-                    <span class="stat-label">Tổng số từ</span>
-                </div>
-            </div>
-            <div class="stat-card">
-                <div class="stat-icon remembered"><i class="fa-solid fa-circle-check"></i></div>
-                <div class="stat-info">
-                    <span class="stat-value" id="stat-remembered">0</span>
-                    <span class="stat-label">Đã nhớ</span>
-                </div>
-            </div>
-            <div class="stat-card">
-                <div class="stat-icon forgot"><i class="fa-solid fa-circle-xmark"></i></div>
-                <div class="stat-info">
-                    <span class="stat-value" id="stat-forgot">0</span>
-                    <span class="stat-label">Chưa nhớ</span>
-                </div>
-            </div>
-            <div class="stat-card">
-                <div class="stat-icon progress"><i class="fa-solid fa-chart-line"></i></div>
-                <div class="stat-info">
-                    <span class="stat-value" id="stat-percentage">0%</span>
-                    <span class="stat-label">Hoàn thành</span>
-                </div>
-            </div>
-        </section>
+<!-- 2. Giao diện bài tập -->
+<div class="quiz-box">
+  <div class="quiz-header">
+    <span class="badge">💡 Bài tập ôn tập</span>
+    <h3 id="quiz-question">Đang tải câu hỏi...</h3>
+  </div>
 
-        <!-- Controls Bar: Filter, Search & Actions -->
-        <section class="controls-bar">
-            <div class="search-box">
-                <i class="fa-solid fa-magnifying-glass"></i>
-                <input type="text" id="search-input" placeholder="Tìm kiếm Hanzi, Pinyin, Nghĩa...">
-            </div>
-            <div class="filter-group">
-                <select id="filter-select" class="custom-select">
-                    <option value="all">Tất cả từ</option>
-                    <option value="forgot">Chưa nhớ</option>
-                    <option value="remembered">Đã nhớ</option>
-                    <option value="favorite">Từ khó (Yêu thích ⭐)</option>
-                </select>
-                <button id="btn-shuffle" class="secondary-btn" title="Xáo trộn danh sách">
-                    <i class="fa-solid fa-shuffle"></i> Học ngẫu nhiên
-                </button>
-            </div>
-        </section>
+  <div id="quiz-options" class="options-group">
+    <!-- Các đáp án sẽ tự động load vào đây -->
+  </div>
 
-        <!-- Progress Bar -->
-        <div class="progress-container">
-            <div class="progress-bar" id="learning-progress"></div>
-        </div>
+  <div class="quiz-footer">
+    <button id="btn-submit" onclick="checkAnswer()">Gửi đáp án 🚀</button>
+    <p id="quiz-feedback" class="feedback-msg"></p>
+  </div>
+</div>
 
-        <!-- Main Flashcard Display Area -->
-        <main class="flashcard-wrapper">
-            <div class="card-counter">
-                <span id="current-index">0</span> / <span id="total-filtered-cards">0</span>
-            </div>
+<!-- 3. CSS Tùy chỉnh (Đẹp, hiện đại) -->
+<style>
+  .quiz-box {
+    background: #161b22;
+    border: 1px solid #30363d;
+    border-radius: 12px;
+    padding: 20px;
+    max-width: 500px;
+    margin: 20px auto;
+    color: #c9d1d9;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.2);
+  }
 
-            <!-- 3D Card Element -->
-            <div class="flashcard" id="flashcard">
-                <!-- Front Side -->
-                <div class="card-face card-front">
-                    <button class="favorite-btn" id="fav-btn" title="Đánh dấu từ khó">
-                        <i class="fa-regular fa-star"></i>
-                    </button>
-                    <div class="hanzi-display" id="card-hanzi">--</div>
-                    <div class="flip-hint"><i class="fa-solid fa-rotate"></i> Chạm hoặc nhấn Space để lật</div>
-                </div>
+  .badge {
+    background: #238636;
+    color: #ffffff;
+    font-size: 12px;
+    font-weight: bold;
+    padding: 4px 8px;
+    border-radius: 20px;
+    text-transform: uppercase;
+  }
 
-                <!-- Back Side -->
-                <div class="card-face card-back">
-                    <div class="card-back-content">
-                        <div class="pinyin-display" id="card-pinyin">--</div>
-                        <div class="meaning-display" id="card-meaning">--</div>
-                        <hr class="divider">
-                        <div class="example-box">
-                            <p class="example-pinyin" id="card-example-pinyin">--</p>
-                            <p class="example-vn" id="card-example-vn">--</p>
-                        </div>
-                    </div>
-                </div>
-            </div>
+  .quiz-header h3 {
+    margin-top: 10px;
+    margin-bottom: 15px;
+    font-size: 18px;
+    color: #f0f6fc;
+  }
 
-            <!-- Card Flip & Navigation Buttons -->
-            <div class="card-controls">
-                <button id="btn-prev" class="nav-btn" title="Từ trước"><i class="fa-solid fa-arrow-left"></i></button>
-                <button id="btn-forgot" class="action-btn btn-forgot"><i class="fa-solid fa-xmark"></i> Chưa nhớ</button>
-                <button id="btn-flip" class="action-btn btn-flip"><i class="fa-solid fa-rotate"></i> Lật thẻ</button>
-                <button id="btn-remembered" class="action-btn btn-remembered"><i class="fa-solid fa-check"></i> Đã nhớ</button>
-                <button id="btn-next" class="nav-btn" title="Từ sau"><i class="fa-solid fa-arrow-right"></i></button>
-            </div>
-        </main>
-    </div>
+  .options-group {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    margin-bottom: 20px;
+  }
 
-    <!-- Modal Congratulation -->
-    <div class="modal-overlay" id="modal-congrats">
-        <div class="modal-content">
-            <div class="modal-icon">🎉</div>
-            <h2>Chúc mừng bạn!</h2>
-            <p>Bạn đã hoàn thành tất cả các từ vựng trong bộ lọc này.</p>
-            <button id="btn-restart" class="primary-btn">Học lại từ đầu</button>
-        </div>
-    </div>
+  .option-label {
+    display: flex;
+    align-items: center;
+    padding: 10px 14px;
+    background: #21262d;
+    border: 1px solid #30363d;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+  }
 
-    <!-- Script App -->
-    <script src="script.js"></script>
-</body>
-</html>
+  .option-label:hover {
+    background: #30363d;
+    border-color: #8b949e;
+  }
+
+  .option-label input {
+    margin-right: 10px;
+    accent-color: #2f81f7;
+  }
+
+  #btn-submit {
+    width: 100%;
+    padding: 10px;
+    background: #238636;
+    color: #white;
+    border: none;
+    border-radius: 6px;
+    font-weight: bold;
+    font-size: 15px;
+    cursor: pointer;
+    transition: background 0.2s;
+  }
+
+  #btn-submit:hover {
+    background: #2ea043;
+  }
+
+  .feedback-msg {
+    margin-top: 12px;
+    font-weight: bold;
+    text-align: center;
+    font-size: 14px;
+  }
+</style>
+
+<!-- 4. Logic Xử lý & Bắn Pháo hoa -->
+<script>
+  // Danh sách các câu hỏi ôn tập (Bạn có thể thêm bớt tùy ý)
+  const quizData = [
+    {
+      question: "Phương thức nào trong SheetJS dùng để chuyển Worksheet thành mảng JSON?",
+      options: [
+        "XLSX.utils.sheet_to_csv",
+        "XLSX.utils.sheet_to_json",
+        "XLSX.read"
+      ],
+      correct: 1
+    },
+    {
+      question: "Để đọc file Excel từ đường dẫn tĩnh trong Node.js, bạn dùng hàm nào?",
+      options: [
+        "XLSX.readFile()",
+        "XLSX.read()",
+        "XLSX.parse()"
+      ],
+      correct: 0
+    }
+  ];
+
+  let currentQuestion = 0;
+
+  function renderQuestion() {
+    const q = quizData[currentQuestion];
+    document.getElementById('quiz-question').innerText = q.question;
+    
+    const optionsContainer = document.getElementById('quiz-options');
+    optionsContainer.innerHTML = '';
+
+    q.options.forEach((opt, index) => {
+      optionsContainer.innerHTML += `
+        <label class="option-label">
+          <input type="radio" name="quiz-opt" value="${index}">
+          <span>${opt}</span>
+        </label>
+      `;
+    });
+
+    document.getElementById('quiz-feedback').innerText = '';
+  }
+
+  function checkAnswer() {
+    const selected = document.querySelector('input[name="quiz-opt"]:checked');
+    const feedback = document.getElementById('quiz-feedback');
+
+    if (!selected) {
+      feedback.style.color = '#e3b341';
+      feedback.innerText = "⚠️ Chọn 1 đáp án đã bro!";
+      return;
+    }
+
+    const answer = parseInt(selected.value);
+    if (answer === quizData[currentQuestion].correct) {
+      feedback.style.color = '#3fb950';
+      feedback.innerText = "🎉 CHÍNH XÁC! Quá đỉnh!";
+      
+      // BẮN PHÁO HOA TUNG BỪNG 🔥
+      triggerConfetti();
+
+      // Tự động chuyển câu hỏi tiếp theo sau 2 giây (nếu còn)
+      setTimeout(() => {
+        currentQuestion = (currentQuestion + 1) % quizData.length;
+        renderQuestion();
+      }, 2000);
+
+    } else {
+      feedback.style.color = '#f85149';
+      feedback.innerText = "❌ Sai rồi! Thử lại xem sao nhé.";
+    }
+  }
+
+  // Hàm hiệu ứng pháo hoa
+  function triggerConfetti() {
+    // Pháo hoa bắn 2 bên góc dưới lên
+    confetti({
+      particleCount: 80,
+      spread: 60,
+      origin: { x: 0.2, y: 0.8 }
+    });
+    confetti({
+      particleCount: 80,
+      spread: 60,
+      origin: { x: 0.8, y: 0.8 }
+    });
+  }
+
+  // Khởi chạy câu hỏi đầu tiên
+  renderQuestion();
+</script>
