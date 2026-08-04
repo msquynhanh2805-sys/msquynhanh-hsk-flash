@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>HSK 1 Luyện Tập Phản Xạ</title>
+  <title>HSK 1 Luyện Phản Xạ Nói</title>
   <link rel="stylesheet" href="style.css">
   
   <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
@@ -16,15 +16,15 @@
       <button id="theme-toggle" class="btn-theme" onclick="toggleDarkMode()">🌙 Dark Mode</button>
     </header>
 
-    <!-- DẠNG 1: TRẮC NGHIỆM CHỌN HÁN TỰ / PINYIN (CÓ LƯU TIẾN ĐỘ) -->
+    <!-- DẠNG 1: TRẮC NGHIỆM CHỌN HÁN TỰ / PINYIN -->
     <section class="quiz-section">
       <div class="quiz-card">
         <div class="badge-wrapper">
-          <span class="badge green">❇️ Bài Tập Ôn Tập HSK 1</span>
+          <span class="badge green">❇️ Dạng 1: Ôn Tập Từ Vựng</span>
         </div>
         
         <div class="quiz-meta">
-          <span class="progress-text" id="mc-progress">Tiến độ: 0/0</span>
+          <span class="progress-text" id="mc-progress">Tiến độ từ: 0/0</span>
           <button class="btn-control" onclick="skipMcQuestion()" style="padding: 2px 8px; font-size: 11px;">Bỏ qua ⏭️</button>
         </div>
 
@@ -38,38 +38,38 @@
 
     <hr class="section-divider">
 
-    <!-- DẠNG 2: SẮP XẾP CÂU PINYIN (60S CHUẨN + LƯU TIẾN ĐỘ) -->
+    <!-- DẠNG 2: LUYỆN NÓI CÂU BẰNG MICRO -->
     <section class="quiz-section">
       <div class="quiz-card">
         <div class="badge-wrapper">
-          <span class="badge blue">⚡ Sắp Xếp Câu Pinyin</span>
+          <span class="badge blue">🎙️ Dạng 2: Luyện Phản Xạ Nói Câu</span>
         </div>
 
         <div class="quiz-meta">
-          <span class="progress-text" id="scramble-progress">Tiến độ: 0/0</span>
-          <span class="timer-text" id="timer-text">⏱️ 60s</span>
+          <span class="progress-text" id="speaking-progress">Tiến độ câu: 0/0</span>
+          <button class="btn-control" onclick="speakSample()" style="padding: 4px 10px; font-size: 12px; color: #0969da;">🔊 Nghe câu mẫu</button>
         </div>
 
-        <div class="timer-container">
-          <div id="timer-bar" class="timer-bar"></div>
+        <p class="quiz-prompt">Đọc câu tiếng Trung tương ứng với nghĩa dưới đây:</p>
+        <h2 id="speaking-meaning" class="quiz-meaning">"..."</h2>
+
+        <!-- Khung hiển thị gợi ý Pinyin & Hán tự -->
+        <div class="sentence-builder-box" id="speaking-box">
+          <p style="color: #57606a; font-size: 13px; margin-bottom: 4px;">Gợi ý Pinyin:</p>
+          <p id="speaking-pinyin-hint" style="color: #0969da; font-weight: bold; font-size: 20px;">...</p>
         </div>
 
-        <p class="quiz-prompt">Sắp xếp các từ Pinyin thành câu đúng (Click từ đã chọn để hủy):</p>
-        <h2 id="scramble-meaning" class="quiz-meaning">"..."</h2>
-
-        <div class="sentence-builder-box" id="user-sentence">
-          <span class="placeholder-text">Click chọn các từ pinyin bên dưới...</span>
+        <div class="quiz-footer" style="margin-top: 15px;">
+          <button class="btn-control primary" onclick="startListening()" style="font-size: 16px; padding: 12px 24px; width: 100%; max-width: 280px;">
+            🎙️ Bấm để nói
+          </button>
         </div>
 
-        <div class="word-pool" id="word-pool"></div>
-
-        <div class="quiz-footer">
-          <button id="btn-pause" class="btn-control" onclick="togglePause()">⏸️ Tạm dừng</button>
-          <button class="btn-control" onclick="resetCurrentSentence()">🔄 Làm lại câu này</button>
-          <button class="btn-control primary" onclick="skipToNextSentence()">⏭️ Câu tiếp theo</button>
+        <div class="quiz-footer" style="margin-top: 10px;">
+          <button class="btn-control" onclick="skipSpeakingSentence()">⏭️ Bỏ qua câu này</button>
         </div>
 
-        <p id="scramble-feedback" class="feedback-msg"></p>
+        <p id="speaking-feedback" class="feedback-msg"></p>
       </div>
     </section>
   </div>
