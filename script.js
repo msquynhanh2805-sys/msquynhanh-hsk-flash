@@ -1,5 +1,5 @@
 /* ==========================================
-   1. BỘ TẠO ÂM THANH PIANO ẤM ÁP (ACOUSTIC PIANO SYNTH)
+   1. BỘ TẠO ÂM THANH PIANO (ACOUSTIC PIANO SYNTH)
    ========================================== */
 const AudioFX = {
   ctx: null,
@@ -7,71 +7,73 @@ const AudioFX = {
     if (!this.ctx) {
       this.ctx = new (window.AudioContext || window.webkitAudioContext)();
     }
+    // Kích hoạt lại Audio Context nếu bị trình duyệt tạm dừng
+    if (this.ctx.state === 'suspended') {
+      this.ctx.resume();
+    }
   },
 
-  // Hàm tạo tiếng Piano chuẩn với búa gõ & bồi âm
   playPianoNote(freq, duration = 0.8, volume = 0.15) {
-    this.init();
-    const now = this.ctx.currentTime;
+    try {
+      this.init();
+      const now = this.ctx.currentTime;
 
-    // Sóng chính (Thân âm Piano)
-    const osc1 = this.ctx.createOscillator();
-    const gain1 = this.ctx.createGain();
-    osc1.type = 'triangle'; // Dạng sóng tam giác cho chất âm giống dây đàn
-    osc1.frequency.setValueAtTime(freq, now);
+      // Sóng chính (Thân âm Piano)
+      const osc1 = this.ctx.createOscillator();
+      const gain1 = this.ctx.createGain();
+      osc1.type = 'triangle';
+      osc1.frequency.setValueAtTime(freq, now);
 
-    // Bồi âm cao (Tạo độ trong cho Piano)
-    const osc2 = this.ctx.createOscillator();
-    const gain2 = this.ctx.createGain();
-    osc2.type = 'sine';
-    osc2.frequency.setValueAtTime(freq * 2, now); // Bội số bậc 2
+      // Bồi âm cao
+      const osc2 = this.ctx.createOscillator();
+      const gain2 = this.ctx.createGain();
+      osc2.type = 'sine';
+      osc2.frequency.setValueAtTime(freq * 2, now);
 
-    // Tiếng gõ búa nhẹ (Hammer attack)
-    const hammer = this.ctx.createOscillator();
-    const hammerGain = this.ctx.createGain();
-    hammer.type = 'sine';
-    hammer.frequency.setValueAtTime(120, now);
+      // Tiếng gõ búa nhẹ (Hammer attack)
+      const hammer = this.ctx.createOscillator();
+      const hammerGain = this.ctx.createGain();
+      hammer.type = 'sine';
+      hammer.frequency.setValueAtTime(120, now);
 
-    // Đồ thị âm lượng: Đột ngột rồi tắt dần (Exponential Decay)
-    gain1.gain.setValueAtTime(volume, now);
-    gain1.gain.exponentialRampToValueAtTime(0.0001, now + duration);
+      // Đồ thị âm lượng
+      gain1.gain.setValueAtTime(volume, now);
+      gain1.gain.exponentialRampToValueAtTime(0.0001, now + duration);
 
-    gain2.gain.setValueAtTime(volume * 0.3, now);
-    gain2.gain.exponentialRampToValueAtTime(0.0001, now + (duration * 0.7));
+      gain2.gain.setValueAtTime(volume * 0.3, now);
+      gain2.gain.exponentialRampToValueAtTime(0.0001, now + (duration * 0.7));
 
-    hammerGain.gain.setValueAtTime(volume * 0.2, now);
-    hammerGain.gain.exponentialRampToValueAtTime(0.0001, now + 0.03);
+      hammerGain.gain.setValueAtTime(volume * 0.2, now);
+      hammerGain.gain.exponentialRampToValueAtTime(0.0001, now + 0.03);
 
-    // Kết nối âm thanh
-    osc1.connect(gain1);
-    osc2.connect(gain2);
-    hammer.connect(hammerGain);
+      osc1.connect(gain1);
+      osc2.connect(gain2);
+      hammer.connect(hammerGain);
 
-    gain1.connect(this.ctx.destination);
-    gain2.connect(this.ctx.destination);
-    hammerGain.connect(this.ctx.destination);
+      gain1.connect(this.ctx.destination);
+      gain2.connect(this.ctx.destination);
+      hammerGain.connect(this.ctx.destination);
 
-    // Phát âm thanh
-    osc1.start(now);
-    osc2.start(now);
-    hammer.start(now);
+      osc1.start(now);
+      osc2.start(now);
+      hammer.start(now);
 
-    osc1.stop(now + duration);
-    osc2.stop(now + duration);
-    hammer.stop(now + 0.03);
+      osc1.stop(now + duration);
+      osc2.stop(now + duration);
+      hammer.stop(now + 0.03);
+    } catch (e) {
+      console.log("Audio play error:", e);
+    }
   },
 
-  // Trả lời ĐÚNG: Nốt C5 (Đồ) ngân nhẹ, ấm áp
   playCorrect() {
     this.playPianoNote(523.25, 0.7, 0.18); 
   },
 
-  // Trả lời SAI: Nốt F3 (Phà) trầm nhẹ
   playWrong() {
     this.playPianoNote(174.61, 0.4, 0.12);
   },
 
-  // PHÁO HOA: Hợp âm rải C-E-G-C (Đồ - Mi - Son - Đồ) du dương
   playCelebration() {
     const notes = [523.25, 659.25, 783.99, 1046.50];
     notes.forEach((freq, idx) => {
@@ -118,6 +120,7 @@ window.addEventListener('DOMContentLoaded', () => {
    4. MODULE 1: VOCABULARY QUIZ
    ========================================== */
 function initVocabModule() {
+  if (!rawData || rawData.length === 0) return;
   vocabDeck = [...rawData].sort(() => Math.random() - 0.5).slice(0, 10);
   currentVocabIndex = 0;
   vocabCorrectCount = 0;
@@ -157,6 +160,7 @@ function renderVocabCard() {
 }
 
 function checkVocabAnswer(selected, correct, btnElement) {
+  AudioFX.init(); // Đảm bảo kích hoạt âm thanh
   const buttons = document.querySelectorAll('#vocab-options .option-btn');
   buttons.forEach(b => b.disabled = true);
 
@@ -194,6 +198,7 @@ function finishVocabSession() {
    5. MODULE 2: SENTENCE BUILDER
    ========================================== */
 function initSentenceModule() {
+  if (!rawData || rawData.length === 0) return;
   const sentenceData = rawData.filter(item => item.SentenceHanzi);
   sentenceDeck = [...sentenceData].sort(() => Math.random() - 0.5).slice(0, 5);
   currentSentenceIndex = 0;
@@ -232,6 +237,7 @@ function renderSentenceCard() {
 }
 
 function selectWord(chipElement, word) {
+  AudioFX.init();
   if (chipElement.classList.contains('used')) return;
   
   chipElement.classList.add('used');
@@ -252,6 +258,7 @@ function deselectWord(selectedChip, originalChip, word) {
 }
 
 function checkSentenceAnswer() {
+  AudioFX.init();
   const currentItem = sentenceDeck[currentSentenceIndex];
   const targetSentence = currentItem.SentenceHanzi.replace(/\s+/g, '');
   const userSentence = userSelectedWords.map(i => i.word).join('');
@@ -286,9 +293,11 @@ function finishSentenceSession() {
    6. TIỆN ÍCH CHUNG (PROGRESS & MODAL)
    ========================================== */
 function updateProgress(module, current, total) {
-  const percent = (current / total) * 100;
-  document.getElementById(`${module}-progress-bar`).style.width = `${percent}%`;
-  document.getElementById(`${module}-progress-text`).innerText = `${current}/${total}`;
+  const percent = total > 0 ? (current / total) * 100 : 0;
+  const bar = document.getElementById(`${module}-progress-bar`);
+  const text = document.getElementById(`${module}-progress-text`);
+  if (bar) bar.style.width = `${percent}%`;
+  if (text) text.innerText = `${current}/${total}`;
 }
 
 function showFeedbackModal(type, accuracy) {
