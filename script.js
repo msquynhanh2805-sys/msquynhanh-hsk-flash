@@ -1,5 +1,5 @@
 /* ==========================================
-   1. BỘ TẠO ÂM THANH NHẸ NHÀNG (SOFT AUDIO)
+   1. BỘ TẠO ÂM THANH SIÊU ÊM (NO DISTORTION / NO HOWLING)
    ========================================== */
 const AudioFX = {
   ctx: null,
@@ -9,11 +9,54 @@ const AudioFX = {
     }
   },
 
-  // Âm thanh ĐÚNG: Chuông gỗ Marimba nhẹ nhàng (C6 -> E6)
+  // Âm thanh ĐÚNG: Chuông chén đơn (Single Soft Bell) - 1 nốt duy nhất, êm ái
   playCorrect() {
     this.init();
     const now = this.ctx.currentTime;
-    const notes = [1046.50, 1318.51];
+    
+    const osc = this.ctx.createOscillator();
+    const gain = this.ctx.createGain();
+
+    osc.type = 'sine';
+    osc.frequency.setValueAtTime(880, now); // Nốt A5 nhẹ nhàng, không rít
+
+    // Giảm master gain để không bị chói
+    gain.gain.setValueAtTime(0.08, now);
+    gain.gain.exponentialRampToValueAtTime(0.0001, now + 0.25);
+
+    osc.connect(gain);
+    gain.connect(this.ctx.destination);
+
+    osc.start(now);
+    osc.stop(now + 0.25);
+  },
+
+  // Âm thanh SAI: Tiếng Pop / Thump trầm khẽ
+  playWrong() {
+    this.init();
+    const now = this.ctx.currentTime;
+    const osc = this.ctx.createOscillator();
+    const gain = this.ctx.createGain();
+
+    osc.type = 'sine';
+    osc.frequency.setValueAtTime(180, now); 
+    osc.frequency.exponentialRampToValueAtTime(100, now + 0.1);
+
+    gain.gain.setValueAtTime(0.1, now);
+    gain.gain.exponentialRampToValueAtTime(0.0001, now + 0.1);
+
+    osc.connect(gain);
+    gain.connect(this.ctx.destination);
+
+    osc.start(now);
+    osc.stop(now + 0.1);
+  },
+
+  // Âm thanh PHÁO HOA: Hợp âm rải Acoustic ấm áp
+  playCelebration() {
+    this.init();
+    const now = this.ctx.currentTime;
+    const notes = [440, 554.37, 659.25, 880]; // A4, C#5, E5, A5
 
     notes.forEach((freq, idx) => {
       const osc = this.ctx.createOscillator();
@@ -22,59 +65,14 @@ const AudioFX = {
       osc.type = 'sine';
       osc.frequency.setValueAtTime(freq, now + idx * 0.08);
 
-      gain.gain.setValueAtTime(0.12, now + idx * 0.08);
-      gain.gain.exponentialRampToValueAtTime(0.001, now + idx * 0.08 + 0.3);
+      gain.gain.setValueAtTime(0.06, now + idx * 0.08);
+      gain.gain.exponentialRampToValueAtTime(0.0001, now + idx * 0.08 + 0.4);
 
       osc.connect(gain);
       gain.connect(this.ctx.destination);
 
       osc.start(now + idx * 0.08);
-      osc.stop(now + idx * 0.08 + 0.3);
-    });
-  },
-
-  // Âm thanh SAI: Tiếng Pop trầm nhẹ, êm ái
-  playWrong() {
-    this.init();
-    const now = this.ctx.currentTime;
-    const osc = this.ctx.createOscillator();
-    const gain = this.ctx.createGain();
-
-    osc.type = 'sine';
-    osc.frequency.setValueAtTime(220, now);
-    osc.frequency.exponentialRampToValueAtTime(130, now + 0.12);
-
-    gain.gain.setValueAtTime(0.15, now);
-    gain.gain.exponentialRampToValueAtTime(0.001, now + 0.12);
-
-    osc.connect(gain);
-    gain.connect(this.ctx.destination);
-
-    osc.start(now);
-    osc.stop(now + 0.12);
-  },
-
-  // Âm thanh PHÁO HOA: Chuông gió ngân dài (Acoustic Chimes)
-  playCelebration() {
-    this.init();
-    const now = this.ctx.currentTime;
-    const chimeNotes = [523.25, 659.25, 783.99, 987.77, 1046.50];
-
-    chimeNotes.forEach((freq, idx) => {
-      const osc = this.ctx.createOscillator();
-      const gain = this.ctx.createGain();
-
-      osc.type = 'sine';
-      osc.frequency.setValueAtTime(freq, now + idx * 0.1);
-
-      gain.gain.setValueAtTime(0.1, now + idx * 0.1);
-      gain.gain.exponentialRampToValueAtTime(0.001, now + idx * 0.1 + 0.6);
-
-      osc.connect(gain);
-      gain.connect(this.ctx.destination);
-
-      osc.start(now + idx * 0.1);
-      osc.stop(now + idx * 0.1 + 0.6);
+      osc.stop(now + idx * 0.08 + 0.4);
     });
   }
 };
@@ -131,7 +129,6 @@ function renderVocabCard() {
   document.getElementById('vocab-hanzi').innerText = currentItem.Hanzi || '';
   document.getElementById('vocab-pinyin').innerText = currentItem.Pinyin || '';
   
-  // Tạo 4 lựa chọn (1 đúng, 3 sai)
   const wrongOptions = rawData
     .filter(item => item.Meaning !== currentItem.Meaning)
     .sort(() => Math.random() - 0.5)
@@ -166,14 +163,12 @@ function checkVocabAnswer(selected, correct, btnElement) {
     btnElement.classList.add('wrong');
     AudioFX.playWrong();
     
-    // Thêm vào ngân hàng lỗi
     const currentItem = vocabDeck[currentVocabIndex];
     if (!vocabErrorBank.some(e => e.Hanzi === currentItem.Hanzi)) {
       vocabErrorBank.push(currentItem);
       localStorage.setItem('vocabErrorBank', JSON.stringify(vocabErrorBank));
     }
 
-    // Hiển thị đáp án đúng
     buttons.forEach(b => {
       if (b.innerText === correct) b.classList.add('correct');
     });
@@ -194,7 +189,6 @@ function finishVocabSession() {
    5. MODULE 2: SENTENCE BUILDER
    ========================================== */
 function initSentenceModule() {
-  // Lọc các hàng có chứa câu (Sentence)
   const sentenceData = rawData.filter(item => item.SentenceHanzi);
   sentenceDeck = [...sentenceData].sort(() => Math.random() - 0.5).slice(0, 5);
   currentSentenceIndex = 0;
@@ -214,7 +208,6 @@ function renderSentenceCard() {
   document.getElementById('sentence-meaning').innerText = currentItem.SentenceMeaning || '';
   document.getElementById('user-sentence-zone').innerHTML = '';
   
-  // Tách từ/ký tự để ghép
   const correctWords = currentItem.SentenceHanzi.split(' ');
   const shuffledWords = [...correctWords].sort(() => Math.random() - 0.5);
   
@@ -314,7 +307,6 @@ function showFeedbackModal(type, accuracy) {
 
   alert(`${title}\n${message}`);
   
-  // Reset lại module sau khi báo kết quả
   if (type === 'vocab') initVocabModule();
   else initSentenceModule();
 }
