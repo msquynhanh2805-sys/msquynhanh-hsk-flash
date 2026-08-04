@@ -117,7 +117,7 @@ function skipMcQuestion() {
 }
 
 /* ==========================================
-   DẠNG 2: LUYỆN NÓI CÂU BẰNG MICRO (LƯU TIẾN ĐỘ)
+   DẠNG 2: LUYỆN NÓI CÂU BẰNG MICRO (ẨN PINYIN)
    ========================================== */
 let speakingList = [];
 let currentSpeakingIndex = 0;
@@ -154,7 +154,17 @@ function loadSpeakingQuestion() {
   document.getElementById('speaking-meaning').innerText = `"${item.exampleVn}"`;
   
   currentTargetPinyin = item.examplePinyin.replace(/[。!？,.]/g, '').trim();
-  document.getElementById('speaking-pinyin-hint').innerText = currentTargetPinyin;
+  
+  // Ẩn Pinyin ban đầu
+  const pinyinHintElement = document.getElementById('speaking-pinyin-hint');
+  pinyinHintElement.innerText = "❓ 🔒 (Nói xong để mở)";
+  pinyinHintElement.style.color = "#8c959f";
+}
+
+function showPinyinHint() {
+  const pinyinHintElement = document.getElementById('speaking-pinyin-hint');
+  pinyinHintElement.innerText = currentTargetPinyin;
+  pinyinHintElement.style.color = "#0969da";
 }
 
 function startListening() {
@@ -194,7 +204,9 @@ function startListening() {
 function checkSpeakingAnswer(spokenText) {
   const feedback = document.getElementById('speaking-feedback');
 
-  // Đơn giản hóa nội dung nói để so sánh
+  // Mở Pinyin đáp án ngay khi nói xong
+  showPinyinHint();
+
   if (spokenText && spokenText.length > 0) {
     feedback.style.color = '#1f883d';
     feedback.innerText = `🎉 Đỉnh quá! App nghe được: "${spokenText}"`;
@@ -202,21 +214,27 @@ function checkSpeakingAnswer(spokenText) {
 
     currentSpeakingIndex++;
     localStorage.setItem('hsk1_speaking_index', currentSpeakingIndex);
-    setTimeout(loadSpeakingQuestion, 2000);
+    setTimeout(loadSpeakingQuestion, 2200);
   } else {
     feedback.style.color = '#d1242f';
     feedback.innerText = `❌ Chưa nghe rõ! Thử phát âm to và rõ ràng hơn nhé.`;
   }
 }
 
+// Giọng đọc chuẩn bằng Google Audio API
 function speakSample() {
   const item = speakingList[currentSpeakingIndex];
   if (!item || !item.examplePinyin) return;
 
-  const utterance = new SpeechSynthesisUtterance(item.examplePinyin);
-  utterance.lang = 'zh-CN'; // Giọng đọc tiếng Trung
-  utterance.rate = 0.8;    // Tốc độ đọc chậm rãi cho người mới học
-  window.speechSynthesis.speak(utterance);
+  const textToSpeak = encodeURIComponent(item.examplePinyin);
+  const audioUrl = `https://translate.google.com/translate_tts?ie=UTF-8&q=${textToSpeak}&tl=zh-CN&client=tw-ob`;
+
+  const audio = new Audio(audioUrl);
+  audio.play().catch(() => {
+    const utterance = new SpeechSynthesisUtterance(item.examplePinyin);
+    utterance.lang = 'zh-CN';
+    window.speechSynthesis.speak(utterance);
+  });
 }
 
 function skipSpeakingSentence() {
