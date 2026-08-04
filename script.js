@@ -1,280 +1,587 @@
-/* ==========================================
-   1. TRẠNG THÁI ỨNG DỤNG (STATE MANAGEMENT)
-   ========================================== */
-let rawData = [];
-
-// Từ vựng
-let vocabDeck = [];
-let currentVocabIndex = 0;
-let vocabCorrectCount = 0;
-let vocabErrorBank = JSON.parse(localStorage.getItem('vocabErrorBank')) || [];
-
-// Ghép câu
-let sentenceDeck = [];
-let currentSentenceIndex = 0;
-let sentenceCorrectCount = 0;
-let sentenceErrorBank = JSON.parse(localStorage.getItem('sentenceErrorBank')) || [];
-let userSelectedWords = [];
+let hskData = [];
 
 /* ==========================================
-   2. KHỞI TẠO DỮ LIỆU TỪ EXCEL
+   BỘ TẠO ÂM THANH (WEB AUDIO API - NATIVE)
    ========================================== */
+const AudioFX = {
+  ctx: null,
+  init() {
+    if (!this.ctx) {
+      this.ctx = new (window.AudioContext || window.webkitAudioContext)();
+    }
+  },
+  // Âm thanh khi trả lời ĐÚNG (Ting vui tươi)
+  playCorrect() {
+    this.init();
+    const now = this.ctx.currentTime;
+    const osc = this.ctx.createOscillator();
+    const gain = this.ctx.createGain();
+
+    osc.type = 'sine';
+    osc.frequency.setValueAtTime(523.25, now); // Nốt C5
+    osc.frequency.exponentialRampToValueAtTime(880, now + 0.15); // Nốt A5
+
+    gain.gain.setValueAtTime(0.3, now);
+    gain.gain.exponentialRampToValueAtTime(0.01, now + 0.3);
+
+    osc.connect(gain);
+    gain.connect(this.ctx.destination);
+
+    osc.start(now);
+    osc.stop(now + 0.3);
+  },
+  // Âm thanh khi trả lời SAI (Trầm nhẹ)
+  playWrong() {
+    this.init();
+    const now = this.ctx.currentTime;
+    const osc = this.ctx.createOscillator();
+    const gain = this.ctx.createGain();
+
+    osc.type = 'triangle';
+    osc.frequency.setValueAtTime(180, now);
+    osc.frequency.setValueAtTime(110, now + 0.1);
+
+    gain.gain.setValueAtTime(0.3, now);
+    gain.gain.exponentialRampToValueAtTime(0.01, now + 0.25);
+
+    osc.connect(gain);
+    gain.connect(this.ctx.destination);
+
+    osc.start(now);
+    osc.stop(now + 0.25);
+  },
+  // Âm thanh PHÁO HOA TỔNG KẾT (Chuỗi âm mừng chiến thắng)
+  playCelebration() {
+    this.init();
+    const notes = [523.25, 659.25, 783.99, 1046.50]; // C5, E5, G5, C6
+    notes.forEach((freq, index) => {
+      setTimeout(() => {
+        const now = this.ctx.currentTime;
+        const osc = this.ctx.createOscillator();
+        const gain = this.ctx.createGain();
+
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(freq, now);
+
+        gain.gain.setValueAtTime(0.3, now);
+        gain.gain.exponentialRampToValueAtTime(0.01, now + 0.3);
+
+        osc.connect(gain);
+        gain.connect(this.ctx.destination);
+
+        osc.start(now);
+        osc.stop(now + 0.3);
+      }, index * 120);
+    });
+  }
+};
+
+/* ==========================================
+   BỘ LỜI KHEN THÔNG MINH
+   ========================================== */
+const PraiseData = {
+  high: [
+    { title: "Bậc Thầy HSK 1! 🏆", msg: "Phong độ đỉnh cao! Cứ giữ đà này thì thi HSK 1 chỉ là chuyện nhỏ.", icon: "👑" },
+    { title: "Xuất Sắc Vượt Trội! 🎉", msg: "Trí nhớ siêu đỉnh! Học viên xuất sắc nhất hôm nay chính là bạn.", icon: "🌟" }
+  ],
+  medium: [
+    { title: "Nỗ Lực Rất Tốt! 💪", msg: "Tiến bộ rõ rệt qua từng phiên học. Cố gắng phát huy nhé!", icon: "🚀" },
+    { title: "Làm Tốt Lắm! 👍", msg: "Chỉ cần ôn nhẹ lại vài câu chưa đúng là thuộc làu làu ngay.", icon: "⚡" }
+  ],
+  low: [
+    { title: "Chiến Binh Kiên Trì! 🛡️", msg: "Vạn sự khởi đầu nan. Đừng lo lắng, sai đâu mình sửa đó nha!", icon: "🌱" },
+    { title: "Không Sao Cả, Cố Lên! ❤️", msg: "Mỗi câu sai là một cơ hội để nhớ lâu hơn. Ôn lại kho câu sai nhé!", icon: "☀️" }
+  ]
+};
+
+function getRandomPraise(accuracyRatio) {
+  let list = PraiseData.low;
+  if (accuracyRatio >= 0.8) list = PraiseData.high;
+  else if (accuracyRatio >= 0.5) list = PraiseData.medium;
+
+  return list[Math.floor(Math.random() * list.length)];
+}
+
+/* KỞI TẠO VÀ ĐỌC EXCEL */
 window.addEventListener('DOMContentLoaded', () => {
   fetch('HSK1_flashcards.xlsx')
     .then(res => res.arrayBuffer())
     .then(buffer => {
       const workbook = XLSX.read(buffer, { type: 'array' });
-      const firstSheet = workbook.Sheets[workbook.SheetNames[0]];
-      rawData = XLSX.utils.sheet_to_json(firstSheet);
+      const sheet = workbook.Sheets[workbook.SheetNames[0]];
+      const rawData = XLSX.utils.sheet_to_json(sheet, { header: 1 });
 
-      updateDashboardStats();
+      hskData = rawData.slice(1).map(row => ({
+        hanzi: row[0] || '',
+        pinyin: row[1] || '',
+        meaning: row[2] || '',
+        exampleVn: row[3] || '',
+        examplePinyin: row[4] || ''
+      })).filter(item => item.hanzi && item.meaning);
+
+      if (hskData.length > 0) {
+        initMultipleChoiceApp();
+        initBuilderApp();
+      }
     })
-    .catch(err => console.error("Lỗi tải file Excel:", err));
+    .catch(err => console.error("Lỗi đọc file Excel:", err));
 });
 
-function updateDashboardStats() {
-  const totalElem = document.getElementById('total-words');
-  const learnedElem = document.getElementById('learned-words');
-  const remainingElem = document.getElementById('remaining-words');
+function switchTab(tabId, btnElement) {
+  document.querySelectorAll('.tab-content').forEach(tab => tab.classList.remove('active'));
+  document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
 
-  if (totalElem) totalElem.innerText = rawData.length;
-  if (learnedElem) learnedElem.innerText = 0;
-  if (remainingElem) remainingElem.innerText = rawData.length;
+  document.getElementById(tabId).classList.add('active');
+  btnElement.classList.add('active');
 }
 
 /* ==========================================
-   3. QUẢN LÝ TAB
+   TAB 1: TRẮC NGHIỆM TỪ VỰNG
    ========================================== */
-function switchTab(tabName) {
-  const tabs = document.querySelectorAll('.tab-content');
-  const buttons = document.querySelectorAll('.tab-btn');
+let mcList = [];
+let mcGlobalIndex = 0;
+let mcSessionList = [];
+let mcSessionIndex = 0;
+let mcCorrectFirstTry = 0;
+let mcWrongList = JSON.parse(localStorage.getItem('hsk1_mc_wrong') || '[]');
+let isMcWrongMode = false;
+let currentMcItem = null;
+let mcHadWrongInCurrent = false;
 
-  tabs.forEach(tab => tab.style.display = 'none');
-  buttons.forEach(btn => btn.classList.remove('active'));
+function initMultipleChoiceApp() {
+  const savedOrder = localStorage.getItem('hsk1_mc_order');
+  const savedIndex = localStorage.getItem('hsk1_mc_index');
 
-  const activeTab = document.getElementById(`${tabName}-tab`);
-  const activeBtn = document.getElementById(`btn-${tabName}`);
-
-  if (activeTab) activeTab.style.display = 'block';
-  if (activeBtn) activeBtn.classList.add('active');
-
-  if (tabName === 'sentence' && sentenceDeck.length === 0) {
-    startSentenceSession();
+  if (savedOrder) {
+    const indices = JSON.parse(savedOrder);
+    mcList = indices.map(idx => hskData[idx]).filter(Boolean);
+  } else {
+    const indices = hskData.map((_, idx) => idx).sort(() => Math.random() - 0.5);
+    localStorage.setItem('hsk1_mc_order', JSON.stringify(indices));
+    mcList = indices.map(idx => hskData[idx]);
   }
+
+  mcGlobalIndex = savedIndex ? parseInt(savedIndex, 10) : 0;
+  if (mcGlobalIndex >= mcList.length) mcGlobalIndex = 0;
+
+  updateMcSetupUI();
 }
 
-/* ==========================================
-   4. MODULE 1: VOCABULARY QUIZ (TỪ VỰNG)
-   ========================================== */
-function startVocabSession() {
-  if (!rawData || rawData.length === 0) return;
+function updateMcSetupUI() {
+  document.getElementById('mc-total-count').innerText = mcList.length;
+  document.getElementById('mc-learned-count').innerText = mcGlobalIndex;
+  document.getElementById('mc-remain-count').innerText = mcList.length - mcGlobalIndex;
 
-  const inputElem = document.getElementById('vocab-session-count');
-  const sessionSize = inputElem ? parseInt(inputElem.value) || 10 : 10;
+  const wrongBtn = document.getElementById('mc-wrong-btn');
+  if (mcWrongList.length > 0) {
+    wrongBtn.style.display = 'inline-block';
+    document.getElementById('mc-wrong-count').innerText = mcWrongList.length;
+  } else {
+    wrongBtn.style.display = 'none';
+  }
 
-  vocabDeck = [...rawData].sort(() => Math.random() - 0.5).slice(0, Math.min(sessionSize, rawData.length));
-  currentVocabIndex = 0;
-  vocabCorrectCount = 0;
-
-  const setupView = document.getElementById('vocab-setup');
-  const quizView = document.getElementById('vocab-quiz');
-
-  if (setupView) setupView.style.display = 'none';
-  if (quizView) quizView.style.display = 'block';
-
-  renderVocabCard();
+  document.getElementById('mc-setup-screen').style.display = 'block';
+  document.getElementById('mc-quiz-screen').style.display = 'none';
+  document.getElementById('mc-summary-screen').style.display = 'none';
 }
 
-function renderVocabCard() {
-  if (currentVocabIndex >= vocabDeck.length) {
-    finishVocabSession();
+function startMcSession() {
+  const countInput = parseInt(document.getElementById('mc-session-input').value, 10) || 10;
+  
+  if (mcGlobalIndex >= mcList.length) mcGlobalIndex = 0;
+
+  mcSessionList = mcList.slice(mcGlobalIndex, mcGlobalIndex + countInput);
+  if (mcSessionList.length === 0) {
+    alert("Bạn đã học hết toàn bộ từ vựng! Hệ thống sẽ xoay vòng lại từ đầu.");
+    mcGlobalIndex = 0;
+    localStorage.setItem('hsk1_mc_index', 0);
+    mcSessionList = mcList.slice(0, countInput);
+  }
+
+  mcSessionIndex = 0;
+  mcCorrectFirstTry = 0;
+  isMcWrongMode = false;
+
+  document.getElementById('mc-setup-screen').style.display = 'none';
+  document.getElementById('mc-quiz-screen').style.display = 'block';
+  document.getElementById('mc-mode-badge').innerText = 'Phiên học mới';
+
+  loadMcQuestion();
+}
+
+function startMcWrongReview() {
+  if (mcWrongList.length === 0) return;
+  
+  mcSessionList = [...mcWrongList];
+  mcSessionIndex = 0;
+  mcCorrectFirstTry = 0;
+  isMcWrongMode = true;
+
+  document.getElementById('mc-setup-screen').style.display = 'none';
+  document.getElementById('mc-quiz-screen').style.display = 'block';
+  document.getElementById('mc-mode-badge').innerText = 'Ôn câu sai ⚠️';
+
+  loadMcQuestion();
+}
+
+function loadMcQuestion() {
+  document.getElementById('mc-feedback').innerText = '';
+
+  if (mcSessionIndex >= mcSessionList.length) {
+    showMcSummary();
     return;
   }
 
-  const currentItem = vocabDeck[currentVocabIndex];
+  currentMcItem = mcSessionList[mcSessionIndex];
 
-  const hanziElem = document.getElementById('vocab-hanzi');
-  const pinyinElem = document.getElementById('vocab-pinyin');
+  document.getElementById('mc-progress-text').innerText = `${mcSessionIndex + 1}/${mcSessionList.length}`;
+  const pct = Math.round(((mcSessionIndex + 1) / mcSessionList.length) * 100);
+  document.getElementById('mc-progress-bar').style.width = `${pct}%`;
 
-  if (hanziElem) hanziElem.innerText = currentItem.Hanzi || '';
-  if (pinyinElem) pinyinElem.innerText = currentItem.Pinyin || '';
+  document.getElementById('mc-meaning').innerText = `"${currentMcItem.meaning}"`;
 
-  const wrongOptions = rawData
-    .filter(item => item.Meaning !== currentItem.Meaning)
+  const wrongOptions = hskData
+    .filter(item => item.hanzi !== currentMcItem.hanzi)
     .sort(() => Math.random() - 0.5)
-    .slice(0, 3)
-    .map(item => item.Meaning);
+    .slice(0, 2);
 
-  const options = [...wrongOptions, currentItem.Meaning].sort(() => Math.random() - 0.5);
+  const options = [currentMcItem, ...wrongOptions].sort(() => Math.random() - 0.5);
 
-  const optionsContainer = document.getElementById('vocab-options');
-  if (optionsContainer) {
-    optionsContainer.innerHTML = '';
-    options.forEach(opt => {
-      const btn = document.createElement('button');
-      btn.className = 'option-btn';
-      btn.innerText = opt;
-      btn.onclick = () => checkVocabAnswer(opt, currentItem.Meaning, btn);
-      optionsContainer.appendChild(btn);
-    });
-  }
+  const container = document.getElementById('mc-options');
+  container.innerHTML = '';
 
-  updateProgress('vocab', currentVocabIndex + 1, vocabDeck.length);
+  options.forEach(opt => {
+    const btn = document.createElement('button');
+    btn.className = 'option-btn';
+    btn.onclick = () => checkMultipleChoice(opt);
+    btn.innerHTML = `
+      <span class="option-hanzi">${opt.hanzi}</span>
+      <span class="option-pinyin">${opt.pinyin}</span>
+    `;
+    container.appendChild(btn);
+  });
 }
 
-function checkVocabAnswer(selected, correct, btnElement) {
-  const buttons = document.querySelectorAll('#vocab-options .option-btn');
-  buttons.forEach(b => b.disabled = true);
+function checkMultipleChoice(selected) {
+  const feedback = document.getElementById('mc-feedback');
 
-  if (selected === correct) {
-    btnElement.classList.add('correct');
-    vocabCorrectCount++;
-  } else {
-    btnElement.classList.add('wrong');
+  if (selected.hanzi === currentMcItem.hanzi) {
+    AudioFX.playCorrect(); // 🔊 Âm thanh đúng
+    feedback.style.color = '#1f883d';
+    feedback.innerText = '🎉 Chính xác!';
+    if (typeof confetti === 'function') confetti({ particleCount: 60, spread: 50, origin: { y: 0.4 } });
 
-    const currentItem = vocabDeck[currentVocabIndex];
-    if (!vocabErrorBank.some(e => e.Hanzi === currentItem.Hanzi)) {
-      vocabErrorBank.push(currentItem);
-      localStorage.setItem('vocabErrorBank', JSON.stringify(vocabErrorBank));
+    if (!mcHadWrongInCurrent) mcCorrectFirstTry++;
+
+    if (isMcWrongMode) {
+      mcWrongList = mcWrongList.filter(item => item.hanzi !== currentMcItem.hanzi);
+      localStorage.setItem('hsk1_mc_wrong', JSON.stringify(mcWrongList));
     }
 
-    buttons.forEach(b => {
-      if (b.innerText === correct) b.classList.add('correct');
-    });
+    setTimeout(() => {
+      mcSessionIndex++;
+      if (!isMcWrongMode) {
+        mcGlobalIndex++;
+        localStorage.setItem('hsk1_mc_index', mcGlobalIndex);
+      }
+      mcHadWrongInCurrent = false;
+      loadMcQuestion();
+    }, 1000);
+
+  } else {
+    AudioFX.playWrong(); // 🔊 Âm thanh sai
+    feedback.style.color = '#d1242f';
+    feedback.innerText = '❌ Chưa đúng, thử lại nhé!';
+    mcHadWrongInCurrent = true;
+
+    if (!mcWrongList.some(item => item.hanzi === currentMcItem.hanzi)) {
+      mcWrongList.push(currentMcItem);
+      localStorage.setItem('hsk1_mc_wrong', JSON.stringify(mcWrongList));
+    }
   }
-
-  setTimeout(() => {
-    currentVocabIndex++;
-    renderVocabCard();
-  }, 1200);
 }
 
-function finishVocabSession() {
-  const accuracy = Math.round((vocabCorrectCount / vocabDeck.length) * 100);
-
-  alert(`🎉 Hoàn thành phiên học!\nĐộ chính xác: ${accuracy}%`);
-
-  const setupView = document.getElementById('vocab-setup');
-  const quizView = document.getElementById('vocab-quiz');
-
-  if (setupView) setupView.style.display = 'block';
-  if (quizView) quizView.style.display = 'none';
+function skipMcQuestion() {
+  mcSessionIndex++;
+  if (!isMcWrongMode) {
+    mcGlobalIndex++;
+    localStorage.setItem('hsk1_mc_index', mcGlobalIndex);
+  }
+  mcHadWrongInCurrent = false;
+  loadMcQuestion();
 }
+
+function showMcSummary() {
+  document.getElementById('mc-quiz-screen').style.display = 'none';
+  document.getElementById('mc-summary-screen').style.display = 'block';
+
+  const total = mcSessionList.length;
+  const correct = mcCorrectFirstTry;
+  const accuracy = total > 0 ? correct / total : 0;
+
+  document.getElementById('mc-sum-done').innerText = total;
+  document.getElementById('mc-sum-correct').innerText = correct;
+  document.getElementById('mc-sum-wrong').innerText = total - correct;
+
+  // Lời khen
+  const praise = getRandomPraise(accuracy);
+  document.getElementById('mc-praise-title').innerText = praise.title;
+  document.getElementById('mc-praise-message').innerText = praise.msg;
+  document.getElementById('mc-badge-icon').innerText = praise.icon;
+
+  AudioFX.playCelebration(); // 🔊 Âm pháo hoa
+  if (typeof confetti === 'function') confetti({ particleCount: 100, spread: 70, origin: { y: 0.5 } });
+}
+
+function continueMcSession() { updateMcSetupUI(); }
+function finishMcSession() { updateMcSetupUI(); }
+
 
 /* ==========================================
-   5. MODULE 2: SENTENCE BUILDER (GHẾP CÂU)
+   TAB 2: SẮP XẾP CÂU
    ========================================== */
-function startSentenceSession() {
-  if (!rawData || rawData.length === 0) return;
+let builderList = [];
+let builderGlobalIndex = 0;
+let builderSessionList = [];
+let builderSessionIndex = 0;
+let builderCorrectFirstTry = 0;
+let builderWrongList = JSON.parse(localStorage.getItem('hsk1_builder_wrong') || '[]');
+let isBuilderWrongMode = false;
+let currentCorrectWords = [];
+let userSelectedPool = [];
+let builderHadWrongInCurrent = false;
 
-  const sentenceData = rawData.filter(item => item.SentenceHanzi);
-  sentenceDeck = [...sentenceData].sort(() => Math.random() - 0.5).slice(0, 5);
-  currentSentenceIndex = 0;
-  sentenceCorrectCount = 0;
+function initBuilderApp() {
+  const validItems = hskData.filter(item => item.examplePinyin && item.exampleVn);
 
-  renderSentenceCard();
+  const savedOrder = localStorage.getItem('hsk1_builder_order');
+  const savedIndex = localStorage.getItem('hsk1_builder_index');
+
+  if (savedOrder) {
+    const indices = JSON.parse(savedOrder);
+    builderList = indices.map(idx => validItems[idx]).filter(Boolean);
+  } else {
+    const indices = validItems.map((_, idx) => idx).sort(() => Math.random() - 0.5);
+    localStorage.setItem('hsk1_builder_order', JSON.stringify(indices));
+    builderList = indices.map(idx => validItems[idx]);
+  }
+
+  builderGlobalIndex = savedIndex ? parseInt(savedIndex, 10) : 0;
+  if (builderGlobalIndex >= builderList.length) builderGlobalIndex = 0;
+
+  updateBuilderSetupUI();
 }
 
-function renderSentenceCard() {
-  if (currentSentenceIndex >= sentenceDeck.length) {
-    finishSentenceSession();
+function updateBuilderSetupUI() {
+  document.getElementById('builder-total-count').innerText = builderList.length;
+  document.getElementById('builder-learned-count').innerText = builderGlobalIndex;
+  document.getElementById('builder-remain-count').innerText = builderList.length - builderGlobalIndex;
+
+  const wrongBtn = document.getElementById('builder-wrong-btn');
+  if (builderWrongList.length > 0) {
+    wrongBtn.style.display = 'inline-block';
+    document.getElementById('builder-wrong-count').innerText = builderWrongList.length;
+  } else {
+    wrongBtn.style.display = 'none';
+  }
+
+  document.getElementById('builder-setup-screen').style.display = 'block';
+  document.getElementById('builder-quiz-screen').style.display = 'none';
+  document.getElementById('builder-summary-screen').style.display = 'none';
+}
+
+function startBuilderSession() {
+  const countInput = parseInt(document.getElementById('builder-session-input').value, 10) || 10;
+
+  if (builderGlobalIndex >= builderList.length) builderGlobalIndex = 0;
+
+  builderSessionList = builderList.slice(builderGlobalIndex, builderGlobalIndex + countInput);
+  if (builderSessionList.length === 0) {
+    alert("Bạn đã ghép hết kho câu ví dụ! Hệ thống sẽ xoay vòng lại.");
+    builderGlobalIndex = 0;
+    localStorage.setItem('hsk1_builder_index', 0);
+    builderSessionList = builderList.slice(0, countInput);
+  }
+
+  builderSessionIndex = 0;
+  builderCorrectFirstTry = 0;
+  isBuilderWrongMode = false;
+
+  document.getElementById('builder-setup-screen').style.display = 'none';
+  document.getElementById('builder-quiz-screen').style.display = 'block';
+  document.getElementById('builder-mode-badge').innerText = 'Phiên ghép câu';
+
+  loadBuilderQuestion();
+}
+
+function startBuilderWrongReview() {
+  if (builderWrongList.length === 0) return;
+
+  builderSessionList = [...builderWrongList];
+  builderSessionIndex = 0;
+  builderCorrectFirstTry = 0;
+  isBuilderWrongMode = true;
+
+  document.getElementById('builder-setup-screen').style.display = 'none';
+  document.getElementById('builder-quiz-screen').style.display = 'block';
+  document.getElementById('builder-mode-badge').innerText = 'Ôn câu sai ⚠️';
+
+  loadBuilderQuestion();
+}
+
+function loadBuilderQuestion() {
+  document.getElementById('builder-feedback').innerText = '';
+
+  if (builderSessionIndex >= builderSessionList.length) {
+    showBuilderSummary();
     return;
   }
 
-  userSelectedWords = [];
-  const currentItem = sentenceDeck[currentSentenceIndex];
+  const item = builderSessionList[builderSessionIndex];
 
-  const meaningElem = document.getElementById('sentence-meaning');
-  const userZone = document.getElementById('user-sentence-zone');
+  document.getElementById('builder-progress-text').innerText = `${builderSessionIndex + 1}/${builderSessionList.length}`;
+  const pct = Math.round(((builderSessionIndex + 1) / builderSessionList.length) * 100);
+  document.getElementById('builder-progress-bar').style.width = `${pct}%`;
 
-  if (meaningElem) meaningElem.innerText = currentItem.SentenceMeaning || '';
-  if (userZone) userZone.innerHTML = '';
+  document.getElementById('builder-meaning').innerText = `"${item.exampleVn}"`;
 
-  const correctWords = (currentItem.SentenceHanzi || '').split(' ');
-  const shuffledWords = [...correctWords].sort(() => Math.random() - 0.5);
+  let rawPinyin = item.examplePinyin.replace(/[。!？,.]/g, '').trim();
+  currentCorrectWords = rawPinyin.split(/\s+/);
 
-  const poolContainer = document.getElementById('sentence-word-pool');
-  if (poolContainer) {
-    poolContainer.innerHTML = '';
-    shuffledWords.forEach((word, idx) => {
-      const chip = document.createElement('div');
-      chip.className = 'word-chip';
-      chip.innerText = word;
-      chip.dataset.id = idx;
-      chip.onclick = () => selectWord(chip, word);
-      poolContainer.appendChild(chip);
+  let wordObjects = currentCorrectWords.map((word, id) => ({ id, text: word }));
+  let shuffledWords = [...wordObjects].sort(() => Math.random() - 0.5);
+
+  userSelectedPool = [];
+  renderBuilderUI(shuffledWords);
+}
+
+function renderBuilderUI(poolWords) {
+  const box = document.getElementById('selected-words-box');
+  const pool = document.getElementById('word-pool');
+
+  box.innerHTML = '';
+  if (userSelectedPool.length === 0) {
+    box.innerHTML = `<p class="placeholder-text">Click vào từng từ bên dưới để ghép câu...</p>`;
+  } else {
+    userSelectedPool.forEach((item, idx) => {
+      const chip = document.createElement('span');
+      chip.className = 'word-chip selected';
+      chip.innerText = item.text;
+      chip.onclick = () => unselectWord(idx, poolWords);
+      box.appendChild(chip);
     });
   }
 
-  updateProgress('sentence', currentSentenceIndex + 1, sentenceDeck.length);
+  pool.innerHTML = '';
+  poolWords.forEach((item) => {
+    const chip = document.createElement('button');
+    chip.className = 'word-chip';
+    chip.innerText = item.text;
+    chip.onclick = () => selectWord(item, poolWords);
+    pool.appendChild(chip);
+  });
 }
 
-function selectWord(chipElement, word) {
-  if (chipElement.classList.contains('used')) return;
+function selectWord(item, currentPool) {
+  userSelectedPool.push(item);
+  const newPool = currentPool.filter(w => w.id !== item.id);
+  renderBuilderUI(newPool);
+}
 
-  chipElement.classList.add('used');
-  userSelectedWords.push({ word, chipId: chipElement.dataset.id });
+function unselectWord(selectedIdx, currentPool) {
+  const removed = userSelectedPool.splice(selectedIdx, 1)[0];
+  currentPool.push(removed);
+  renderBuilderUI(currentPool);
+}
 
-  const userZone = document.getElementById('user-sentence-zone');
-  if (userZone) {
-    const selectedChip = document.createElement('div');
-    selectedChip.className = 'word-chip selected';
-    selectedChip.innerText = word;
-    selectedChip.onclick = () => deselectWord(selectedChip, chipElement, word);
-    userZone.appendChild(selectedChip);
+function resetBuilderSelection() {
+  loadBuilderQuestion();
+}
+
+function checkBuilderAnswer() {
+  const feedback = document.getElementById('builder-feedback');
+  const userResult = userSelectedPool.map(w => w.text).join(' ');
+  const correctResult = currentCorrectWords.join(' ');
+
+  if (userSelectedPool.length === 0) {
+    feedback.style.color = '#d1242f';
+    feedback.innerText = '⚠️ Bạn chưa chọn từ nào kìa!';
+    return;
   }
-}
 
-function deselectWord(selectedChip, originalChip, word) {
-  selectedChip.remove();
-  originalChip.classList.remove('used');
-  userSelectedWords = userSelectedWords.filter(item => item.chipId !== originalChip.dataset.id);
-}
+  const currentItem = builderSessionList[builderSessionIndex];
 
-function checkSentenceAnswer() {
-  const currentItem = sentenceDeck[currentSentenceIndex];
-  const targetSentence = (currentItem.SentenceHanzi || '').replace(/\s+/g, '');
-  const userSentence = userSelectedWords.map(i => i.word).join('');
+  if (userResult.toLowerCase() === correctResult.toLowerCase()) {
+    AudioFX.playCorrect(); // 🔊 Âm thanh đúng
+    feedback.style.color = '#1f883d';
+    feedback.innerText = `🎉 Chuẩn đét! Đáp án: "${correctResult}"`;
+    if (typeof confetti === 'function') confetti({ particleCount: 70, spread: 60, origin: { y: 0.8 } });
 
-  if (userSentence === targetSentence) {
-    sentenceCorrectCount++;
+    if (!builderHadWrongInCurrent) builderCorrectFirstTry++;
+
+    if (isBuilderWrongMode) {
+      builderWrongList = builderWrongList.filter(item => item.exampleVn !== currentItem.exampleVn);
+      localStorage.setItem('hsk1_builder_wrong', JSON.stringify(builderWrongList));
+    }
+
     setTimeout(() => {
-      currentSentenceIndex++;
-      renderSentenceCard();
-    }, 1000);
-  } else {
-    if (!sentenceErrorBank.some(e => e.SentenceHanzi === currentItem.SentenceHanzi)) {
-      sentenceErrorBank.push(currentItem);
-      localStorage.setItem('sentenceErrorBank', JSON.stringify(sentenceErrorBank));
-    }
+      builderSessionIndex++;
+      if (!isBuilderWrongMode) {
+        builderGlobalIndex++;
+        localStorage.setItem('hsk1_builder_index', builderGlobalIndex);
+      }
+      builderHadWrongInCurrent = false;
+      loadBuilderQuestion();
+    }, 1200);
 
-    const userZone = document.getElementById('user-sentence-zone');
-    if (userZone) {
-      userZone.classList.add('shake');
-      setTimeout(() => userZone.classList.remove('shake'), 500);
+  } else {
+    AudioFX.playWrong(); // 🔊 Âm thanh sai
+    feedback.style.color = '#d1242f';
+    feedback.innerText = `❌ Sai thứ tự từ rồi, thử lại nhé!`;
+    builderHadWrongInCurrent = true;
+
+    if (!builderWrongList.some(item => item.exampleVn === currentItem.exampleVn)) {
+      builderWrongList.push(currentItem);
+      localStorage.setItem('hsk1_builder_wrong', JSON.stringify(builderWrongList));
     }
   }
 }
 
-function finishSentenceSession() {
-  const accuracy = Math.round((sentenceCorrectCount / sentenceDeck.length) * 100);
-  alert(`🎉 Hoàn thành ghép câu!\nĐộ chính xác: ${accuracy}%`);
-  startSentenceSession();
+function skipBuilderSentence() {
+  builderSessionIndex++;
+  if (!isBuilderWrongMode) {
+    builderGlobalIndex++;
+    localStorage.setItem('hsk1_builder_index', builderGlobalIndex);
+  }
+  builderHadWrongInCurrent = false;
+  loadBuilderQuestion();
 }
 
-/* ==========================================
-   6. TIỆN ÍCH CHUNG
-   ========================================== */
-function updateProgress(module, current, total) {
-  const percent = total > 0 ? (current / total) * 100 : 0;
-  const bar = document.getElementById(`${module}-progress-bar`);
-  const text = document.getElementById(`${module}-progress-text`);
-  if (bar) bar.style.width = `${percent}%`;
-  if (text) text.innerText = `${current}/${total}`;
+function showBuilderSummary() {
+  document.getElementById('builder-quiz-screen').style.display = 'none';
+  document.getElementById('builder-summary-screen').style.display = 'block';
+
+  const total = builderSessionList.length;
+  const correct = builderCorrectFirstTry;
+  const accuracy = total > 0 ? correct / total : 0;
+
+  document.getElementById('builder-sum-done').innerText = total;
+  document.getElementById('builder-sum-correct').innerText = correct;
+  document.getElementById('builder-sum-wrong').innerText = total - correct;
+
+  const praise = getRandomPraise(accuracy);
+  document.getElementById('builder-praise-title').innerText = praise.title;
+  document.getElementById('builder-praise-message').innerText = praise.msg;
+  document.getElementById('builder-badge-icon').innerText = praise.icon;
+
+  AudioFX.playCelebration(); // 🔊 Âm pháo hoa
+  if (typeof confetti === 'function') confetti({ particleCount: 100, spread: 70, origin: { y: 0.5 } });
 }
 
-// Khai báo hàm dùng trực tiếp từ HTML (onclick)
-window.switchTab = switchTab;
-window.startVocabSession = startVocabSession;
-window.startSentenceSession = startSentenceSession;
-window.checkSentenceAnswer = checkSentenceAnswer;
+function continueBuilderSession() { updateBuilderSetupUI(); }
+function finishBuilderSession() { updateBuilderSetupUI(); }
+
+/* Dark Mode Toggle */
+function toggleDarkMode() {
+  document.body.classList.toggle('dark-mode');
+}
