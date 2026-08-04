@@ -17,7 +17,7 @@ window.addEventListener('DOMContentLoaded', () => {
       })).filter(item => item.hanzi && item.meaning);
 
       if (hskData.length > 0) {
-        initMultipleChoiceQuiz();
+        initMultipleChoiceApp();
         initSentenceScrambleApp();
       }
     })
@@ -25,16 +25,42 @@ window.addEventListener('DOMContentLoaded', () => {
 });
 
 /* ==========================================
-   DẠNG 1: TRẮC NGHIỆM CHỌN HÁN TỰ + PINYIN
+   DẠNG 1: TRẮC NGHIỆM TỪ VỰNG (CÓ LƯU TIẾN ĐỘ)
    ========================================== */
+let mcList = [];
+let mcIndex = 0;
 let currentMcCorrectItem = null;
 
-function initMultipleChoiceQuiz() {
+function initMultipleChoiceApp() {
+  const savedMcOrder = localStorage.getItem('hsk1_mc_order');
+  const savedMcIndex = localStorage.getItem('hsk1_mc_index');
+
+  if (savedMcOrder) {
+    const indices = JSON.parse(savedMcOrder);
+    mcList = indices.map(idx => hskData[idx]).filter(Boolean);
+  } else {
+    // Trộn từ ngẫu nhiên lần đầu
+    const indices = hskData.map((_, idx) => idx).sort(() => Math.random() - 0.5);
+    localStorage.setItem('hsk1_mc_order', JSON.stringify(indices));
+    mcList = indices.map(idx => hskData[idx]);
+  }
+
+  if (savedMcIndex) {
+    mcIndex = parseInt(savedMcIndex, 10);
+    if (mcIndex >= mcList.length) mcIndex = 0;
+  }
+
+  loadMcQuestion();
+}
+
+function loadMcQuestion() {
   document.getElementById('mc-feedback').innerText = '';
-  
-  currentMcCorrectItem = hskData[Math.floor(Math.random() * hskData.length)];
+  document.getElementById('mc-progress').innerText = `Tiến độ từ: ${mcIndex + 1} / ${mcList.length}`;
+
+  currentMcCorrectItem = mcList[mcIndex];
   document.getElementById('mc-meaning').innerText = `"${currentMcCorrectItem.meaning}"`;
 
+  // Lấy 2 đáp án sai ngẫu nhiên
   const wrongOptions = hskData
     .filter(item => item.hanzi !== currentMcCorrectItem.hanzi)
     .sort(() => Math.random() - 0.5)
@@ -65,33 +91,40 @@ function checkMultipleChoice(selectedItem) {
     feedback.style.color = '#1f883d';
     feedback.innerText = '🎉 Chính xác!';
     if (typeof confetti === 'function') confetti({ particleCount: 80, spread: 60, origin: { y: 0.3 } });
-    setTimeout(initMultipleChoiceQuiz, 1200);
+
+    mcIndex++;
+    localStorage.setItem('hsk1_mc_index', mcIndex);
+    setTimeout(loadMcQuestion, 1200);
   } else {
     feedback.style.color = '#d1242f';
     feedback.innerText = '❌ Sai rồi, thử lại xem!';
   }
 }
 
+function skipMcQuestion() {
+  mcIndex++;
+  localStorage.setItem('hsk1_mc_index', mcIndex);
+  loadMcQuestion();
+}
+
 /* ==========================================
-   DẠNG 2: SẮP XẾP CÂU (LƯU TIẾN ĐỘ + 60s + PAUSE + HOÀN TỪ)
+   DẠNG 2: SẮP XẾP CÂU (60S CHUẨN + LƯU TIẾN ĐỘ)
    ========================================== */
 let sentenceList = [];
 let currentSentenceIndex = 0;
 
 let currentTargetSentence = "";
-let poolWords = [];         // Các từ hiện có ở khung dưới [{id, word}]
-let selectedWords = [];     // Các từ đã chọn ở khung trên [{id, word}]
+let poolWords = [];
+let selectedWords = [];
 
 let timerInterval = null;
-let timeLeft = 60;          // 60 giây
+let timeLeft = 60; // Chuẩn 60 giây
 let isPaused = false;
 let isQuizActive = true;
 
 function initSentenceScrambleApp() {
-  // Lấy câu ví dụ có đủ Pinyin & Nghĩa VN
   const validItems = hskData.filter(item => item.examplePinyin && item.exampleVn);
 
-  // Lấy thứ tự câu đã lưu từ LocalStorage (hoặc trộn ngẫu nhiên lần đầu)
   const savedOrder = localStorage.getItem('hsk1_sentence_order');
   const savedIndex = localStorage.getItem('hsk1_sentence_index');
 
@@ -99,7 +132,6 @@ function initSentenceScrambleApp() {
     const indices = JSON.parse(savedOrder);
     sentenceList = indices.map(idx => validItems[idx]).filter(Boolean);
   } else {
-    // Trộn ngẫu nhiên câu lần đầu tiên
     const indices = validItems.map((_, idx) => idx).sort(() => Math.random() - 0.5);
     localStorage.setItem('hsk1_sentence_order', JSON.stringify(indices));
     sentenceList = indices.map(idx => validItems[idx]);
@@ -107,9 +139,7 @@ function initSentenceScrambleApp() {
 
   if (savedIndex) {
     currentSentenceIndex = parseInt(savedIndex, 10);
-    if (currentSentenceIndex >= sentenceList.length) {
-      currentSentenceIndex = 0; // Đã xong hết thì quay lại từ đầu
-    }
+    if (currentSentenceIndex >= sentenceList.length) currentSentenceIndex = 0;
   }
 
   loadSentenceQuestion();
@@ -119,7 +149,7 @@ function loadSentenceQuestion() {
   clearInterval(timerInterval);
   isPaused = false;
   isQuizActive = true;
-  timeLeft = 60;
+  timeLeft = 60; // Reset về đúng 60 giây
 
   document.getElementById('btn-pause').innerText = '⏸️ Tạm dừng';
   document.getElementById('scramble-feedback').innerText = '';
@@ -129,7 +159,6 @@ function loadSentenceQuestion() {
   document.getElementById('scramble-meaning').innerText = `"${item.exampleVn}"`;
   currentTargetSentence = item.examplePinyin.replace(/[。!？,.]/g, '').trim();
 
-  // Tách câu thành danh sách từ và đánh ID từng từ
   const rawWords = currentTargetSentence.split(' ').filter(w => w.trim() !== '');
   const shuffled = [...rawWords].sort(() => Math.random() - 0.5);
 
@@ -141,7 +170,6 @@ function loadSentenceQuestion() {
 }
 
 function renderSentenceBoxes() {
-  // 1. Render khung ghép câu bên trên
   const builderBox = document.getElementById('user-sentence');
   builderBox.innerHTML = '';
 
@@ -152,13 +180,11 @@ function renderSentenceBoxes() {
       const chip = document.createElement('button');
       chip.className = 'word-chip selected-chip';
       chip.innerText = item.word;
-      // Click vào từ ở ô câu ➔ Trả từ về ô bên dưới
       chip.onclick = () => deselectWord(item);
       builderBox.appendChild(chip);
     });
   }
 
-  // 2. Render khung chứa từ bên dưới
   const poolContainer = document.getElementById('word-pool');
   poolContainer.innerHTML = '';
 
@@ -174,13 +200,10 @@ function renderSentenceBoxes() {
 function selectWord(item) {
   if (!isQuizActive || isPaused) return;
 
-  // Chuyển từ pool -> selected
   poolWords = poolWords.filter(w => w.id !== item.id);
   selectedWords.push(item);
-
   renderSentenceBoxes();
 
-  // Khi đã chọn hết từ
   if (poolWords.length === 0) {
     checkSentenceAnswer();
   }
@@ -189,17 +212,13 @@ function selectWord(item) {
 function deselectWord(item) {
   if (!isQuizActive || isPaused) return;
 
-  // Chuyển từ selected -> pool
   selectedWords = selectedWords.filter(w => w.id !== item.id);
   poolWords.push(item);
-
   renderSentenceBoxes();
 }
 
 function resetCurrentSentence() {
   if (!isQuizActive) return;
-  
-  // Trả toàn bộ từ về lại pool
   poolWords = [...poolWords, ...selectedWords];
   selectedWords = [];
   document.getElementById('scramble-feedback').innerText = '';
@@ -219,7 +238,6 @@ function checkSentenceAnswer() {
 
     if (typeof confetti === 'function') confetti({ particleCount: 100, spread: 70, origin: { y: 0.8 } });
 
-    // Lưu tiến độ câu tiếp theo
     currentSentenceIndex++;
     localStorage.setItem('hsk1_sentence_index', currentSentenceIndex);
 
@@ -231,16 +249,20 @@ function checkSentenceAnswer() {
 }
 
 /* ==========================================
-   TIMER & ĐIỀU KHIỂN
+   TIMER CHUẨN 60S & CÁC NÚT BẤM
    ========================================== */
 function startTimer() {
   const timerBar = document.getElementById('timer-bar');
   const timerText = document.getElementById('timer-text');
 
+  timerBar.style.width = '100%';
+  timerBar.style.backgroundColor = '#2da44e';
+
   timerInterval = setInterval(() => {
     if (isPaused || !isQuizActive) return;
 
     timeLeft -= 0.1;
+    // Tính đúng tỷ lệ % theo mốc 60s
     const percentage = (timeLeft / 60) * 100;
     
     timerBar.style.width = `${percentage}%`;
@@ -248,8 +270,6 @@ function startTimer() {
 
     if (timeLeft <= 10) {
       timerBar.style.backgroundColor = '#cf222e';
-    } else {
-      timerBar.style.backgroundColor = '#2da44e';
     }
 
     if (timeLeft <= 0) {
