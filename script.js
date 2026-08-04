@@ -1,16 +1,5 @@
 let hskData = [];
 
-// Khởi tạo tính năng nhận diện giọng nói (Speech-to-Text)
-const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-let recognition = null;
-
-if (SpeechRecognition) {
-  recognition = new SpeechRecognition();
-  recognition.lang = 'zh-CN'; // Cấu hình nhận diện tiếng Trung Quốc (Phổ thông)
-  recognition.interimResults = false;
-  recognition.maxAlternatives = 1;
-}
-
 window.addEventListener('DOMContentLoaded', () => {
   fetch('HSK1_flashcards.xlsx')
     .then(res => res.arrayBuffer())
@@ -29,11 +18,30 @@ window.addEventListener('DOMContentLoaded', () => {
 
       if (hskData.length > 0) {
         initMultipleChoiceApp();
-        initSpeakingApp();
+        initBuilderApp();
       }
     })
     .catch(err => console.error("Lỗi đọc file Excel:", err));
 });
+
+/* ==========================================
+   CHUYỂN TAB (TAB NAVIGATION)
+   ========================================== */
+function switchTab(tabId, btnElement) {
+  // Ẩn tất cả tab nội dung
+  document.querySelectorAll('.tab-content').forEach(tab => {
+    tab.classList.remove('active');
+  });
+
+  // Bỏ trạng thái active trên nút cũ
+  document.querySelectorAll('.tab-btn').forEach(btn => {
+    btn.classList.remove('active');
+  });
+
+  // Mở tab được chọn
+  document.getElementById(tabId).classList.add('active');
+  btnElement.classList.add('active');
+}
 
 /* ==========================================
    DẠNG 1: TRẮC NGHIỆM TỪ VỰNG (LƯU TIẾN ĐỘ)
@@ -117,138 +125,142 @@ function skipMcQuestion() {
 }
 
 /* ==========================================
-   DẠNG 2: LUYỆN NÓI CÂU (CHE PINYIN HÒAN TOÀN)
+   DẠNG 2: SẮP XẾP TỪ THÀNH CÂU (SENTENCE BUILDER)
    ========================================== */
-let speakingList = [];
-let currentSpeakingIndex = 0;
-let currentTargetPinyin = "";
+let builderList = [];
+let currentBuilderIndex = 0;
+let currentSentenceWords = [];
+let userSelectedWords = [];
 
-function initSpeakingApp() {
+function initBuilderApp() {
   const validItems = hskData.filter(item => item.examplePinyin && item.exampleVn);
 
-  const savedOrder = localStorage.getItem('hsk1_speaking_order');
-  const savedIndex = localStorage.getItem('hsk1_speaking_index');
+  const savedOrder = localStorage.getItem('hsk1_builder_order');
+  const savedIndex = localStorage.getItem('hsk1_builder_index');
 
   if (savedOrder) {
     const indices = JSON.parse(savedOrder);
-    speakingList = indices.map(idx => validItems[idx]).filter(Boolean);
+    builderList = indices.map(idx => validItems[idx]).filter(Boolean);
   } else {
     const indices = validItems.map((_, idx) => idx).sort(() => Math.random() - 0.5);
-    localStorage.setItem('hsk1_speaking_order', JSON.stringify(indices));
-    speakingList = indices.map(idx => validItems[idx]);
+    localStorage.setItem('hsk1_builder_order', JSON.stringify(indices));
+    builderList = indices.map(idx => validItems[idx]);
   }
 
   if (savedIndex) {
-    currentSpeakingIndex = parseInt(savedIndex, 10);
-    if (currentSpeakingIndex >= speakingList.length) currentSpeakingIndex = 0;
+    currentBuilderIndex = parseInt(savedIndex, 10);
+    if (currentBuilderIndex >= builderList.length) currentBuilderIndex = 0;
   }
 
-  loadSpeakingQuestion();
+  loadBuilderQuestion();
 }
 
-function loadSpeakingQuestion() {
-  document.getElementById('speaking-feedback').innerText = '';
-  document.getElementById('speaking-progress').innerText = `Tiến độ câu: ${currentSpeakingIndex + 1} / ${speakingList.length}`;
+function loadBuilderQuestion() {
+  document.getElementById('builder-feedback').innerText = '';
+  document.getElementById('builder-progress').innerText = `Tiến độ câu: ${currentBuilderIndex + 1} / ${builderList.length}`;
 
-  const item = speakingList[currentSpeakingIndex];
-  document.getElementById('speaking-meaning').innerText = `"${item.exampleVn}"`;
+  const item = builderList[currentBuilderIndex];
+  document.getElementById('builder-meaning').innerText = `"${item.exampleVn}"`;
+
+  let rawPinyin = item.examplePinyin.replace(/[。!？,.]/g, '').trim();
+  currentSentenceWords = rawPinyin.split(/\s+/);
+
+  let shuffledWords = [...currentSentenceWords].sort(() => Math.random() - 0.5);
+
+  userSelectedWords = [];
+  renderBuilderUI(shuffledWords);
+}
+
+function renderBuilderUI(poolWords) {
+  const box = document.getElementById('selected-words-box');
+  const pool = document.getElementById('word-pool');
+
+  box.innerHTML = '';
+  if (userSelectedWords.length === 0) {
+    box.innerHTML = `<p class="placeholder-text" id="builder-placeholder">Click vào các từ bên dưới để ghép câu...</p>`;
+  } else {
+    userSelectedWords.forEach((wordObj, idx) => {
+      const chip = document.createElement('span');
+      chip.className = 'word-chip selected';
+      chip.innerText = wordObj.text;
+      chip.onclick = () => unselectWord(idx);
+      box.appendChild(chip);
+    });
+  }
+
+  pool.innerHTML = '';
+  poolWords.forEach((word, idx) => {
+    const chip = document.createElement('button');
+    chip.className = 'word-chip';
+    chip.innerText = word;
+    chip.onclick = () => selectWord(word, idx, poolWords);
+    pool.appendChild(chip);
+  });
+}
+
+function selectWord(word, idx, currentPool) {
+  userSelectedWords.push({ text: word });
+  const newPool = currentPool.filter((_, i) => i !== idx);
+  renderBuilderUI(newPool);
+}
+
+function unselectWord(selectedIdx) {
+  const removed = userSelectedWords.splice(selectedIdx, 1)[0];
   
-  currentTargetPinyin = item.examplePinyin.replace(/[。!？,.]/g, '').trim();
-  
-  // CHE PINYIN HOÀN TOÀN
-  const pinyinHintElement = document.getElementById('speaking-pinyin-hint');
-  pinyinHintElement.innerText = "🙈 * * * * * * *";
-  pinyinHintElement.style.color = "#8c959f";
+  const poolChips = Array.from(document.querySelectorAll('#word-pool .word-chip')).map(c => c.innerText);
+  poolChips.push(removed.text);
+
+  renderBuilderUI(poolChips);
 }
 
-function showPinyinHint() {
-  const pinyinHintElement = document.getElementById('speaking-pinyin-hint');
-  pinyinHintElement.innerText = currentTargetPinyin;
-  pinyinHintElement.style.color = "#0969da";
+function resetBuilderSelection() {
+  loadBuilderQuestion();
 }
 
-function startListening() {
-  const feedback = document.getElementById('speaking-feedback');
+function checkBuilderAnswer() {
+  const feedback = document.getElementById('builder-feedback');
+  const userResult = userSelectedWords.map(w => w.text).join(' ');
+  const correctResult = currentSentenceWords.join(' ');
 
-  if (!recognition) {
+  if (userSelectedWords.length === 0) {
     feedback.style.color = '#d1242f';
-    feedback.innerText = '⚠️ Trình duyệt không hỗ trợ micro (Hãy mở bằng Chrome hoặc Safari nhé!).';
+    feedback.innerText = '⚠️ M chưa chọn từ nào kìa!';
     return;
   }
 
-  feedback.style.color = '#0969da';
-  feedback.innerText = '🎙️ Đang nghe... M hãy đọc câu tiếng Trung đi!';
-
-  try {
-    recognition.start();
-  } catch (e) {
-    recognition.stop();
-    recognition.start();
-  }
-
-  recognition.onresult = (event) => {
-    const spokenText = event.results[0][0].transcript.replace(/[。!？,.]/g, '').trim();
-    checkSpeakingAnswer(spokenText);
-  };
-
-  recognition.onerror = (event) => {
-    feedback.style.color = '#d1242f';
-    if (event.error === 'not-allowed') {
-      feedback.innerText = '⚠️ Trình duyệt chưa được cấp quyền dùng Micro!';
-    } else {
-      feedback.innerText = '❌ Bấm mic thử đọc lại lần nữa nhé!';
-    }
-  };
-}
-
-function checkSpeakingAnswer(spokenText) {
-  const feedback = document.getElementById('speaking-feedback');
-
-  // HIỂN THỊ PINYIN ĐÁP ÁN KHI NÓI XONG
-  showPinyinHint();
-
-  if (spokenText && spokenText.length > 0) {
+  if (userResult.toLowerCase() === correctResult.toLowerCase()) {
     feedback.style.color = '#1f883d';
-    feedback.innerText = `🎉 Đỉnh quá! App nghe được: "${spokenText}"`;
+    feedback.innerText = `🎉 Chuẩn đét! Đáp án: ${correctResult}`;
     if (typeof confetti === 'function') confetti({ particleCount: 90, spread: 70, origin: { y: 0.8 } });
 
-    currentSpeakingIndex++;
-    localStorage.setItem('hsk1_speaking_index', currentSpeakingIndex);
-    setTimeout(loadSpeakingQuestion, 2200);
+    currentBuilderIndex++;
+    localStorage.setItem('hsk1_builder_index', currentBuilderIndex);
+    setTimeout(loadBuilderQuestion, 1800);
   } else {
     feedback.style.color = '#d1242f';
-    feedback.innerText = `❌ Chưa nghe rõ! Thử phát âm to và rõ ràng hơn nhé.`;
+    feedback.innerText = `❌ Chưa đúng ngữ pháp rồi, thử lại xem!`;
   }
 }
 
-// PHÁT ÂM CHUẨN GIỌNG NÓI TIẾNG TRUNG
 function speakSample() {
-  const item = speakingList[currentSpeakingIndex];
+  const item = builderList[currentBuilderIndex];
   if (!item || !item.examplePinyin) return;
 
-  // Lấy thẳng Hán tự hoặc Pinyin phát âm qua SpeechSynthesis giọng chuẩn zh-CN
-  if ('speechSynthesis' in window) {
-    window.speechSynthesis.cancel();
-    
-    // Ưu tiên đọc câu Hán tự nếu có, không có thì đọc Pinyin
-    const text = item.hanziExample || item.examplePinyin; 
-    const utterance = new SpeechSynthesisUtterance(text);
+  const textToSpeak = encodeURIComponent(item.examplePinyin);
+  const audioUrl = `https://translate.google.com/translate_tts?ie=UTF-8&q=${textToSpeak}&tl=zh-CN&client=tw-ob`;
+
+  const audio = new Audio(audioUrl);
+  audio.play().catch(() => {
+    const utterance = new SpeechSynthesisUtterance(item.examplePinyin);
     utterance.lang = 'zh-CN';
-    utterance.rate = 0.85; // Tốc độ chuẩn cho người học
-
-    // Chọn giọng tiếng Trung chuẩn của trình duyệt
-    const voices = window.speechSynthesis.getVoices();
-    const zhVoice = voices.find(v => v.lang.includes('zh') || v.lang.includes('CN'));
-    if (zhVoice) utterance.voice = zhVoice;
-
     window.speechSynthesis.speak(utterance);
-  }
+  });
 }
 
-function skipSpeakingSentence() {
-  currentSpeakingIndex++;
-  localStorage.setItem('hsk1_speaking_index', currentSpeakingIndex);
-  loadSpeakingQuestion();
+function skipBuilderSentence() {
+  currentBuilderIndex++;
+  localStorage.setItem('hsk1_builder_index', currentBuilderIndex);
+  loadBuilderQuestion();
 }
 
 /* ==========================================
