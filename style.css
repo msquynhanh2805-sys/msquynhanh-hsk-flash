@@ -1,84 +1,121 @@
-body {
-    margin: 0;
-    font-family: Arial, Helvetica, sans-serif;
-    background: #f3f6fb;
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    min-height: 100vh;
+let cards = [];
+let current = 0;
+
+const STORAGE_KEY = "hsk_flashcards_progress";
+
+const card = document.getElementById("card");
+const progressBar = document.getElementById("progressBar");
+const progressText = document.getElementById("progressText");
+
+const hanzi = document.getElementById("hanzi");
+const pinyin = document.getElementById("pinyin");
+const meaning = document.getElementById("meaning");
+const exampleVN = document.getElementById("exampleVN");
+const examplePY = document.getElementById("examplePY");
+
+fetch("data/HSK1_flashcards.xlsx")
+.then(res => res.arrayBuffer())
+.then(buffer => {
+
+    const workbook = XLSX.read(buffer);
+
+    const sheet = workbook.Sheets[workbook.SheetNames[0]];
+
+    cards = XLSX.utils.sheet_to_json(sheet);
+
+    loadProgress();
+
+    showCard();
+
+});
+
+function showCard(){
+
+    if(current >= cards.length){
+
+        alert("🎉 Chúc mừng! Mày đã học hết bộ flashcard.");
+
+        localStorage.removeItem(STORAGE_KEY);
+
+        return;
+    }
+
+    let c = cards[current];
+
+    hanzi.textContent = c["Hanzi"] || "";
+
+    pinyin.textContent = c["Pinyin"] || "";
+
+    meaning.textContent = c["Nghĩa"] || "";
+
+    exampleVN.textContent = c["Ví dụ VN"] || "";
+
+    examplePY.textContent = c["Ví dụ pinyin"] || "";
+
+    card.classList.remove("flipped");
+
+    updateProgress();
+
 }
 
-.container {
-    width: 90%;
-    max-width: 500px;
-    text-align: center;
+function updateProgress(){
+
+    progressText.innerHTML =
+        `${current+1} / ${cards.length}`;
+
+    progressBar.style.width =
+        ((current)/cards.length*100)+"%";
+
 }
 
-h1 {
-    color: #2c3e50;
+document.getElementById("flipBtn").onclick = () => {
+
+    card.classList.toggle("flipped");
+
 }
 
-.progress {
-    width: 100%;
-    height: 14px;
-    background: #ddd;
-    border-radius: 20px;
-    overflow: hidden;
-    margin-bottom: 10px;
+card.onclick = () => {
+
+    card.classList.toggle("flipped");
+
 }
 
-#progressBar {
-    width: 0%;
-    height: 100%;
-    background: #4CAF50;
-    transition: .3s;
+document.getElementById("knowBtn").onclick = () => {
+
+    current++;
+
+    saveProgress();
+
+    showCard();
+
 }
 
-.card {
-    background: white;
-    border-radius: 20px;
-    padding: 40px;
-    margin: 20px 0;
-    box-shadow: 0 10px 25px rgba(0,0,0,.12);
-    min-height: 180px;
+document.getElementById("dontKnowBtn").onclick = () => {
+
+    cards.push(cards[current]);
+
+    current++;
+
+    saveProgress();
+
+    showCard();
+
 }
 
-.front {
-    font-size: 40px;
-    font-weight: bold;
+function saveProgress(){
+
+    localStorage.setItem(STORAGE_KEY,current);
+
 }
 
-.back {
-    display: none;
-    margin-top: 20px;
-    font-size: 22px;
-    color: #555;
-}
+function loadProgress(){
 
-button {
-    border: none;
-    border-radius: 10px;
-    padding: 12px 24px;
-    margin: 8px;
-    cursor: pointer;
-    font-size: 16px;
-}
+    let saved = localStorage.getItem(STORAGE_KEY);
 
-#flipBtn {
-    background: #3498db;
-    color: white;
-}
+    if(saved){
 
-#knowBtn {
-    background: #2ecc71;
-    color: white;
-}
+        current = parseInt(saved);
 
-#dontKnowBtn {
-    background: #e74c3c;
-    color: white;
-}
+    }
 
-button:hover {
-    opacity: .9;
 }
